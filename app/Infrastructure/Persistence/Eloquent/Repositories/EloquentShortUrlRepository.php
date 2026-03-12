@@ -11,7 +11,14 @@ class EloquentShortUrlRepository implements ShortUrlRepository
 {
     public function save(ShortUrl $url): ShortUrl
     {
-        $model = ShortUrlMapper::toModel($url);
+        if ($url->id()) {
+            $model = ShortUrlModel::findOrFail($url->id());
+        } else {
+            $model = new ShortUrlModel();
+        }
+        $model->original_url = $url->originalUrl();
+        $model->short_code = $url->shortCode();
+        $model->clicks = $url->clicks();
         $model->save();
         return ShortUrlMapper::toEntity($model);
     }

@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure\Persistence\Eloquent\Models;
 
-use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
 use Illuminate\Database\Eloquent\Model;
 
 class ClickModel extends Model
@@ -13,9 +12,4 @@ class ClickModel extends Model
         'user_agent',
         'referer',
     ];
-
-    public function shortUrl()
-    {
-        return $this->belongsTo(ShortUrlModel::class);
-    }
 }

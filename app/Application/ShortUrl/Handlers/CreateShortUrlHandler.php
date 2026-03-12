@@ -16,17 +16,10 @@ class CreateShortUrlHandler
 
     public function handle(CreateShortUrlCommand $command): ShortUrl
     {
+        $code = $this->shortCodeGenerator->generate();
         $shortUrl = ShortUrl::create(
             $command->url,
-            ''
-        );
-        $shortUrl = $this->repository->save($shortUrl);
-        $code = $this->shortCodeGenerator->generate($shortUrl->id());
-        $shortUrl = new ShortUrl(
-            $shortUrl->id(),
-            $shortUrl->originalUrl(),
-            $code,
-            $shortUrl->clicks()
+            $code
         );
         return $this->repository->save($shortUrl);
     }
