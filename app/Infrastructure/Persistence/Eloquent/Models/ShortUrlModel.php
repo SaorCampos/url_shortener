@@ -9,11 +9,8 @@ class ShortUrlModel extends Model
     protected $table = 'short_urls';
     protected $fillable = [
         'original_url',
-        'short_code'
+        'short_code',
+        'clicks'
     ];
 
-    public function clicks()
-    {
-        return $this->hasMany(ClickModel::class);
-    }
 }
