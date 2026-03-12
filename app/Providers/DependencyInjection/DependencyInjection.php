@@ -1,10 +1,7 @@
 <?php
 
-
 namespace App\Providers\DependencyInjection;
 
-use App\Providers\DependencyInjection\RepositoryDependencyInjection;
-use App\Providers\DependencyInjection\ServiceDependencyInjection;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Collection;
 
@@ -14,10 +11,8 @@ abstract class DependencyInjection
     abstract protected function servicesConfiguration(): array;
 
     public function __construct(
-        private Application $app
-    )
-    {
-    }
+        protected Application $app
+    ) {}
 
     public static function providers(Application $app): Collection
     {
@@ -27,14 +22,14 @@ abstract class DependencyInjection
         ]);
     }
 
-    public function configure()
+    public function configure(): void
     {
         $configurations = array_merge(
             $this->repositoriesConfigurations(),
             $this->servicesConfiguration()
         );
-        foreach ($configurations as $configuration) {
-            $this->app->bind($configuration[0], $configuration[1]);
+        foreach ($configurations as $interface => $implementation) {
+            $this->app->bind($interface, $implementation);
         }
     }
 }

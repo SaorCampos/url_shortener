@@ -4,7 +4,6 @@ namespace App\Providers\DependencyInjection;
 
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
 use App\Infrastructure\Services\Base62ShortCodeGenerator;
-use App\Providers\DependencyInjection\DependencyInjection;
 
 class ServiceDependencyInjection extends DependencyInjection
 {
@@ -16,9 +15,7 @@ class ServiceDependencyInjection extends DependencyInjection
     protected function servicesConfiguration(): array
     {
         return [
-            [
-                [ShortCodeGenerator::class, Base62ShortCodeGenerator::class],
-            ]
+            ShortCodeGenerator::class => Base62ShortCodeGenerator::class
         ];
     }
 }
