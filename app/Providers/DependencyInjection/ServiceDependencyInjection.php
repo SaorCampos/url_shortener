@@ -3,7 +3,7 @@
 namespace App\Providers\DependencyInjection;
 
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
-use App\Infrastructure\Services\Base62ShortCodeGenerator;
+use App\Infrastructure\ShortUrl\Services\Base62ShortCodeGenerator;
 
 class ServiceDependencyInjection extends DependencyInjection
 {
