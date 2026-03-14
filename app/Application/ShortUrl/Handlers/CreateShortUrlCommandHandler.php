@@ -7,7 +7,7 @@ use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
 
-class CreateShortUrlHandler
+class CreateShortUrlCommandHandler
 {
     public function __construct(
         private ShortUrlRepository $repository,
