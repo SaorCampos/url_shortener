@@ -9,7 +9,6 @@ use App\Infrastructure\Cache\CachedShortUrlRepository;
 use App\Infrastructure\Cache\RedisService;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
 use App\Infrastructure\ShortUrl\Services\Base62ShortCodeGenerator;
-use App\Providers\DependencyInjection\DependencyInjection;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -37,6 +36,15 @@ class AppServiceProvider extends ServiceProvider
             ShortUrlRepository::class,
             CachedShortUrlRepository::class
         );
+        $this->app->bind(
+        ShortUrlRepository::class,
+        function ($app) {
+            return new CachedShortUrlRepository(
+                $app->make(EloquentShortUrlRepository::class),
+                $app->make(CacheService::class)
+            );
+        }
+    );
     }
     private function registerServices(): void
     {

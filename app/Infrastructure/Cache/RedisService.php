@@ -17,12 +17,7 @@ class RedisService implements CacheService
     public function get(string $key): mixed
     {
         $value = Redis::get($this->key($key));
-        if ($value) {
-            Redis::incr($this->key('metrics:hit'));
-            return json_decode($value, true);
-        }
-        Redis::incr($this->key('metrics:miss'));
-        return null;
+        return $value ? json_decode($value, true) : null;
     }
     public function set(string $key, mixed $value, int $ttl = 3600): void
     {
@@ -32,16 +27,18 @@ class RedisService implements CacheService
             json_encode($value)
         );
     }
-    public function remember(string $key, callable $callback, int $ttl = 3600): mixed
+    public function remember(string $key, callable $callback, int $ttl = 3600):mixed
     {
-        $cached = $this->get($key);
-        if ($cached !== null) {
-            return $cached;
+        $cached = Redis::get($key);
+        if ($cached) {
+            return unserialize($cached);
         }
         $value = $callback();
-        if ($value !== null) {
-            $this->set($key, $value, $ttl);
-        }
+        Redis::setex(
+            $key,
+            $ttl,
+            serialize($value)
+        );
         return $value;
     }
     public function forget(string $key): void

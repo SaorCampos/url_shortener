@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Application\Bus\CommandBus;
+use App\Application\Bus\QueryBus;
 use App\Application\ShortUrl\Commands\CreateShortUrlCommand;
-use App\Application\ShortUrl\Handlers\FindShortUrlByCodeQueryHandler;
-use App\Application\ShortUrl\Handlers\FindShortUrlHandler;
 use App\Application\ShortUrl\Queries\FindShortUrlByCodeQuery;
+use App\Http\Controllers\Controller;
 use App\Http\Request\CreateShortUrlRequest;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -14,8 +15,7 @@ class ShortUrlController extends Controller
 {
     public function __construct(
         private CommandBus $commandBus,
-        private FindShortUrlHandler $findShortUrlHandler,
-        private FindShortUrlByCodeQueryHandler $findShortUrlByCodeQueryHandler
+        private QueryBus $queryBus
     ) {}
 
     public function create(CreateShortUrlRequest $request): Response
@@ -32,20 +32,12 @@ class ShortUrlController extends Controller
     }
     public function findByCode(string $code): Response
     {
-        $query = new FindShortUrlByCodeQuery($code);
-        $shortUrl = $this->findShortUrlHandler->handle($query);
+        $shortUrl = $this->queryBus->dispatch(
+            new FindShortUrlByCodeQuery($code)
+        );
         if (!$shortUrl) {
             return response()->json(['message' => 'Short URL not found'], 404);
         }
         return redirect($shortUrl->originalUrl());
-    }
-    public function redirect(string $code)
-    {
-        $query = new FindShortUrlByCodeQuery($code);
-        $shortUrl = $this->findShortUrlByCodeQueryHandler->handle($query);
-        if (!$shortUrl) {
-            abort(404);
-        }
-        return redirect()->away($shortUrl->originalUrl());
     }
 }
