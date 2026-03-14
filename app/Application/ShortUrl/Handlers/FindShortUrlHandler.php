@@ -2,7 +2,7 @@
 
 namespace App\Application\ShortUrl\Handlers;
 
-use App\Application\ShortUrl\Commands\FindShortUrlCommand;
+use App\Application\ShortUrl\Queries\FindShortUrlByCodeQuery;
 use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 
@@ -11,8 +11,8 @@ class FindShortUrlHandler
     public function __construct(
         private ShortUrlRepository $repository,
     ) {}
-    public function handle(FindShortUrlCommand $command): ?ShortUrl
+    public function handle(FindShortUrlByCodeQuery $query): ?ShortUrl
     {
-        return $this->repository->findByCode($command->code);
+        return $this->repository->findByCode($query->code);
     }
 }
