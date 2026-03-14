@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Domain\Shared\Cache\CacheService;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
+use App\Domain\ShortUrl\Services\ShortCodeGenerator;
 use App\Infrastructure\Cache\CachedShortUrlRepository;
+use App\Infrastructure\Cache\RedisService;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
-use App\Providers\DependencyInjection\DependencyInjection;
+use App\Infrastructure\ShortUrl\Services\Base62ShortCodeGenerator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -15,16 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        DependencyInjection::providers($this->app)->each(fn($di) => $di->configure());
-
-        $this->app->bind(
-            ShortUrlRepository::class,
-            function ($app) {
-                return new CachedShortUrlRepository(
-                    new EloquentShortUrlRepository()
-                );
-            }
-        );
+        $this->registerRepositories();
+        $this->registerServices();
     }
 
     /**
@@ -33,5 +28,33 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
+    }
+
+    private function registerRepositories(): void
+    {
+        $this->app->bind(
+            ShortUrlRepository::class,
+            CachedShortUrlRepository::class
+        );
+        $this->app->bind(
+        ShortUrlRepository::class,
+        function ($app) {
+            return new CachedShortUrlRepository(
+                $app->make(EloquentShortUrlRepository::class),
+                $app->make(CacheService::class)
+            );
+        }
+    );
+    }
+    private function registerServices(): void
+    {
+        $this->app->bind(
+            ShortCodeGenerator::class,
+            Base62ShortCodeGenerator::class
+        );
+        $this->app->singleton(
+            CacheService::class,
+            RedisService::class
+        );
     }
 }

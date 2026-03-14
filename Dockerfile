@@ -1,6 +1,5 @@
 FROM php:8.4-fpm
 
-# set your user name, ex: user=joe
 ARG user=saor
 ARG uid=1000
 
@@ -11,41 +10,53 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libpq-dev \
     zip \
     unzip
 
-RUN apt-get install -y libpq-dev \
-    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && docker-php-ext-install pdo pdo_pgsql pgsql
-# Clear cache
+# PHP Extensions
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    pgsql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    sockets
+
+# Redis (PECL)
+RUN pecl install redis \
+    && docker-php-ext-enable redis
+
+# Clean up
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd sockets
-
-# Get latest Composer
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Create system user to run Composer and Artisan Commands
+# User
 RUN useradd -G www-data,root -u $uid -d /home/$user $user \
  && mkdir -p /home/$user/.composer \
  && chown -R $user:$user /home/$user
 
 WORKDIR /var/www
 
-# Cache-friendly: deps before code
+# Install dependencies
 COPY composer.json composer.lock ./
-USER root
+
 RUN composer install \
     --ignore-platform-reqs \
     --no-interaction \
     --prefer-dist \
     --optimize-autoloader \
-    --no-scripts \
-    --no-plugins
+    --no-scripts
 
-# Copy the project and custom.ini
+# Copy project
 COPY . .
+
+# Config PHP
 COPY docker/php/custom.ini /usr/local/etc/php/conf.d/
 
 USER $user

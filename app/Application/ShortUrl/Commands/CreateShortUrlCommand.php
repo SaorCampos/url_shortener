@@ -2,9 +2,7 @@
 
 namespace App\Application\ShortUrl\Commands;
 
-use App\Application\Bus\Command;
-
-class CreateShortUrlCommand implements Command
+class CreateShortUrlCommand
 {
     public function __construct(
         public string $url

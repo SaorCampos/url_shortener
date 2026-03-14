@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Infrastructure\Services;
+namespace App\Infrastructure\ShortUrl\Services;
 
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
 

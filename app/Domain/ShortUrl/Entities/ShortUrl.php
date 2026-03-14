@@ -15,7 +15,6 @@ class ShortUrl
     {
         return new self(null, $url, $code, 0);
     }
-
     public static function restore(
         int $id,
         string $url,
@@ -44,5 +43,14 @@ class ShortUrl
     public function registerClick(): void
     {
         $this->clicks++;
+    }
+    public function withCode(string $code): self
+    {
+        return new self(
+            $this->id,
+            $this->originalUrl,
+            $code,
+            $this->clicks
+        );
     }
 }
