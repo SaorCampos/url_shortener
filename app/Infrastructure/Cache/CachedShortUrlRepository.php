@@ -2,14 +2,17 @@
 
 namespace App\Infrastructure\Cache;
 
-use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
+use App\Domain\Shared\Cache\CacheService;
 use App\Domain\ShortUrl\Entities\ShortUrl;
+use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
+use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use Illuminate\Support\Facades\Cache;
 
 class CachedShortUrlRepository implements ShortUrlRepository
 {
     public function __construct(
-        private ShortUrlRepository $repository
+        private EloquentShortUrlRepository $repository,
+        private CacheService $cache
     ) {}
 
     public function save(ShortUrl $url): ShortUrl
