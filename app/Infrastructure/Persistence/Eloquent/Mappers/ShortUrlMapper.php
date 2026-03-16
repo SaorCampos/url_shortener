@@ -13,7 +13,8 @@ class ShortUrlMapper
             $model->id,
             $model->original_url,
             $model->short_code,
-            $model->clicks
+            $model->clicks,
+            $model->expires_at ? new \DateTimeImmutable($model->expires_at) : null
         );
     }
 

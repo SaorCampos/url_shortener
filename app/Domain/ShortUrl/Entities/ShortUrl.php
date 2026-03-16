@@ -2,26 +2,34 @@
 
 namespace App\Domain\ShortUrl\Entities;
 
+use DateTimeImmutable;
+
 class ShortUrl
 {
     public function __construct(
         private ?int $id,
         private string $originalUrl,
         private string $shortCode,
-        private int $clicks = 0
+        private int $clicks = 0,
+        private ?DateTimeImmutable $expiresAt = null
     ) {}
 
-    public static function create(string $url, string $code): self
-    {
-        return new self(null, $url, $code, 0);
+    public static function create(
+        int $id,
+        string $url,
+        string $code,
+        ?DateTimeImmutable $expiresAt = null
+    ): self {
+        return new self($id, $url, $code, 0, $expiresAt);
     }
     public static function restore(
         int $id,
         string $url,
         string $code,
-        int $clicks
+        int $clicks,
+        ?DateTimeImmutable $expiresAt
     ): self {
-        return new self($id, $url, $code, $clicks);
+        return new self($id, $url, $code, $clicks, $expiresAt);
     }
 
     public function id(): ?int
@@ -40,17 +48,17 @@ class ShortUrl
     {
         return $this->clicks;
     }
+    public function expiresAt(): ?DateTimeImmutable
+    {
+        return $this->expiresAt;
+    }
+    public function isExpired(): bool
+    {
+        return $this->expiresAt !== null &&
+            new DateTimeImmutable() > $this->expiresAt;
+    }
     public function registerClick(): void
     {
         $this->clicks++;
-    }
-    public function withCode(string $code): self
-    {
-        return new self(
-            $this->id,
-            $this->originalUrl,
-            $code,
-            $this->clicks
-        );
     }
 }

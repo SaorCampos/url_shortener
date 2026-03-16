@@ -61,6 +61,48 @@ services:
       - redis
     networks:
       - urlshortener
+  worker:
+    container_name: urlshortener_worker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: php artisan shorturl:process-clicks
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    depends_on:
+      - redis
+      - db
+    networks:
+      - urlshortener
+
+  idpool:
+    container_name: urlshortener_idpool
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: php artisan shorturl:fill-id-pool
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    depends_on:
+      - redis
+    networks:
+      - urlshortener
+  flushclicks:
+    container_name: urlshortener_flushclicks
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: php artisan shorturl:flush-clicks
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    networks:
+    - urlshortener
+    depends_on:
+      - redis
+      - db
 
 networks:
   urlshortener:
@@ -68,3 +110,4 @@ networks:
 
 volumes:
   postgres_data:
+
