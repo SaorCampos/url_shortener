@@ -4,7 +4,6 @@ namespace App\Infrastructure\Persistence\Eloquent\Mappers;
 
 use App\Domain\ShortUrl\DTO\ShortUrlData;
 use App\Domain\ShortUrl\Entities\ShortUrl;
-use App\Domain\ShortUrl\ValueObjects\ExpirationDate;
 use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
 
 class ShortUrlMapper
@@ -15,13 +14,9 @@ class ShortUrlMapper
             new ShortUrlData(
                 id: $model->id,
                 originalUrl: $model->original_url,
-                shortCode: $model->short_code,
+                shortCode: $model->short_code->value(),
                 clicks: $model->clicks,
-                expiresAt: ExpirationDate::from(
-                    $model->expires_at
-                        ? new \DateTimeImmutable($model->expires_at)
-                        : null
-                )
+                expiresAt: $model->expires_at
             )
         );
     }

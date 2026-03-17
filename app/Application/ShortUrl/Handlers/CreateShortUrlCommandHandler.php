@@ -27,8 +27,7 @@ class CreateShortUrlCommandHandler
         $shortUrl = ShortUrl::create(
             $id,
             $command->url,
-            $code,
-            $command->expiresAt
+            $code
         );
         $shortUrl = $this->repository->save($shortUrl);
         Redis::setex(

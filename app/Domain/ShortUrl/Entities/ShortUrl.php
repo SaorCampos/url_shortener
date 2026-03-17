@@ -23,12 +23,18 @@ class ShortUrl
         string $code,
         ?ExpirationDate $expiresAt = null
     ): self {
+        if (!$expiresAt) {
+            $days = config('shorturl.default_expiration_days');
+            $expiresAt = ExpirationDate::from(
+                new \DateTimeImmutable("+{$days} days")
+            );
+        }
         return new self(
             $id,
             $url,
             ShortCode::from($code),
             0,
-            $expiresAt ?? ExpirationDate::inDays(7)
+            $expiresAt
         );
     }
     public static function restore(ShortUrlData $data): self
