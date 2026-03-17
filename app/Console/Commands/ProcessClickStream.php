@@ -20,9 +20,7 @@ class ProcessClickStream extends Command
     {
         $this->ensureGroup();
         while (true) {
-            // Reclaim pending messages (worker crash recovery)
             $this->recoverPending();
-            // Read new events
             $events = Redis::xreadgroup(
                 self::GROUP,
                 self::CONSUMER,
@@ -35,25 +33,6 @@ class ProcessClickStream extends Command
                 continue;
             }
             $this->processEvents($events[self::STREAM]);
-        }
-    }
-
-    private function recoverPending(): void
-    {
-        try {
-            $result = Redis::xautoclaim(
-                self::STREAM,
-                self::GROUP,
-                self::CONSUMER,
-                60000, // 60s idle
-                '0-0',
-                100
-            );
-            if (!empty($result[1])) {
-                $this->processEvents($result[1]);
-            }
-        } catch (\Exception $e) {
-            Log::warning("XAUTOCLAIM failed: ".$e->getMessage());
         }
     }
 
@@ -103,7 +82,26 @@ class ProcessClickStream extends Command
                 true
             );
         } catch (\Exception $e) {
-            Log::warning("Group already exists: ".$e->getMessage());
+            Log::warning("Group creation failed: ".$e->getMessage());
+        }
+    }
+
+    private function recoverPending(): void
+    {
+        try {
+            $result = Redis::xautoclaim(
+                self::STREAM,
+                self::GROUP,
+                self::CONSUMER,
+                60000,
+                '0-0',
+                100
+            );
+            if (!empty($result[1])) {
+                $this->processEvents($result[1]);
+            }
+        } catch (\Exception $e) {
+            Log::warning("XAUTOCLAIM failed: ".$e->getMessage());
         }
     }
 }

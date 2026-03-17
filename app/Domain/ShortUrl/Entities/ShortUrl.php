@@ -76,4 +76,8 @@ class ShortUrl
     {
         $this->clicks++;
     }
+    public function incrementClicks(int $amount): void
+    {
+        $this->clicks += $amount;
+    }
 }

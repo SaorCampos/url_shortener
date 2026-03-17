@@ -40,11 +40,7 @@ class RedirectController extends Controller
         $shortUrl = $this->queryBus->dispatch(
             new FindShortUrlByCodeQuery($code)
         );
-        if (!$shortUrl) {
-            Redis::setex("shorturl:404:{$code}", 3600, 1);
-            abort(404);
-        }
-        if ($shortUrl->isExpired()) {
+        if (!$shortUrl || $shortUrl->isExpired()) {
             Redis::setex("shorturl:404:{$code}", 3600, 1);
             abort(404);
         }
@@ -57,6 +53,9 @@ class RedirectController extends Controller
 
     private function trackClick(string $code): void
     {
-        Redis::incr("shorturl:clicks:{$code}");
+        Redis::xadd('shorturl:clicks', '*', [
+            'code' => $code,
+            'ts' => now()->timestamp
+        ]);
     }
 }

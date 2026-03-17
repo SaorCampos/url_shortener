@@ -32,8 +32,8 @@ class FlushClickCounters extends Command
                 foreach ($keys as $key) {
                     $code = str_replace('shorturl:clicks:', '', $key);
                     $count = Redis::getset($key, 0);
-                    if ($count > 0) {
-                        $counts[$code] = ($counts[$code] ?? 0) + $count;
+                    if ($count !== null && (int)$count > 0) {
+                        $counts[$code] = ($counts[$code] ?? 0) + (int)$count;
                     }
                 }
                 if (count($counts) >= 500) {
@@ -64,7 +64,7 @@ class FlushClickCounters extends Command
             UPDATE short_urls s
             SET clicks = s.clicks + v.count
             FROM (
-                VALUES ".implode(',', $values)."
+                VALUES " . implode(',', $values) . "
             ) AS v(short_code, count)
             WHERE s.short_code = v.short_code
         ";

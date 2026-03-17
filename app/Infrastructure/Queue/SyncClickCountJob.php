@@ -22,9 +22,7 @@ class SyncClickCountJob
         if (!$shortUrl) {
             return;
         }
-        for ($i = 0; $i < $clicks; $i++) {
-            $shortUrl->registerClick();
-        }
+        $shortUrl->incrementClicks((int) $clicks);
         $repository->save($shortUrl);
         Redis::del($key);
     }
