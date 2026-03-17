@@ -2,7 +2,9 @@
 
 namespace App\Infrastructure\Persistence\Eloquent\Mappers;
 
+use App\Domain\ShortUrl\DTO\ShortUrlData;
 use App\Domain\ShortUrl\Entities\ShortUrl;
+use App\Domain\ShortUrl\ValueObjects\ExpirationDate;
 use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
 
 class ShortUrlMapper
@@ -10,11 +12,17 @@ class ShortUrlMapper
     public static function toEntity(ShortUrlModel $model): ShortUrl
     {
         return ShortUrl::restore(
-            $model->id,
-            $model->original_url,
-            $model->short_code,
-            $model->clicks,
-            $model->expires_at ? new \DateTimeImmutable($model->expires_at) : null
+            new ShortUrlData(
+                id: $model->id,
+                originalUrl: $model->original_url,
+                shortCode: $model->short_code,
+                clicks: $model->clicks,
+                expiresAt: ExpirationDate::from(
+                    $model->expires_at
+                        ? new \DateTimeImmutable($model->expires_at)
+                        : null
+                )
+            )
         );
     }
 
@@ -27,6 +35,7 @@ class ShortUrlMapper
         $model->original_url = $entity->originalUrl();
         $model->short_code = $entity->shortCode();
         $model->clicks = $entity->clicks();
+        $model->expires_at = $entity->expiresAt()?->format('Y-m-d H:i:s');
         return $model;
     }
 }

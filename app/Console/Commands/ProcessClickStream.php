@@ -20,9 +20,9 @@ class ProcessClickStream extends Command
     {
         $this->ensureGroup();
         while (true) {
-            // 1️⃣ Reclaim pending messages (worker crash recovery)
+            // Reclaim pending messages (worker crash recovery)
             $this->recoverPending();
-            // 2️⃣ Read new events
+            // Read new events
             $events = Redis::xreadgroup(
                 self::GROUP,
                 self::CONSUMER,
