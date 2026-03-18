@@ -56,21 +56,20 @@ class ProcessClickStream extends Command
         $values = [];
         $bindings = [];
         foreach ($counts as $code => $count) {
-            $values[] = "(?, ?)";
+            $values[] = "(?, ?::int)";
             $bindings[] = $code;
-            $bindings[] = $count;
+            $bindings[] = (int) $count;
         }
         $sql = "
-            UPDATE short_urls s
-            SET clicks = s.clicks + v.count
-            FROM (
-                VALUES ".implode(',', $values)."
-            ) AS v(short_code, count)
-            WHERE s.short_code = v.short_code
-        ";
+        UPDATE short_urls s
+        SET clicks = s.clicks + v.count::int
+        FROM (
+            VALUES " . implode(',', $values) . "
+        ) AS v(short_code, count)
+        WHERE s.short_code = v.short_code
+    ";
         DB::update($sql, $bindings);
     }
-
     private function ensureGroup(): void
     {
         try {
@@ -82,7 +81,7 @@ class ProcessClickStream extends Command
                 true
             );
         } catch (\Exception $e) {
-            Log::warning("Group creation failed: ".$e->getMessage());
+            Log::warning("Group creation failed: " . $e->getMessage());
         }
     }
 
@@ -101,7 +100,7 @@ class ProcessClickStream extends Command
                 $this->processEvents($result[1]);
             }
         } catch (\Exception $e) {
-            Log::warning("XAUTOCLAIM failed: ".$e->getMessage());
+            Log::warning("XAUTOCLAIM failed: " . $e->getMessage());
         }
     }
 }
