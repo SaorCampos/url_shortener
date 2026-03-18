@@ -1,4 +1,4 @@
-APP_CONTAINER=urlshortener_app
+APP_CONTAINER=app
 
 up:
 	docker compose up -d --build
