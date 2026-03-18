@@ -27,7 +27,9 @@ class ShortUrlController extends Controller
             'id' => $shortUrl->id(),
             'url' => $shortUrl->originalUrl(),
             'short_code' => $shortUrl->shortCode(),
-            'short_url' => url('/' . $shortUrl->shortCode())
+            'short_url' => url('/' . $shortUrl->shortCode()),
+            'clicks' => $shortUrl->clicks(),
+            'expires_at' => $shortUrl->expiresAt()->format('Y-m-d H:i:s')
         ], 201);
     }
     public function findByCode(string $code): Response
@@ -38,6 +40,12 @@ class ShortUrlController extends Controller
         if (!$shortUrl) {
             return response()->json(['message' => 'Short URL not found'], 404);
         }
-        return redirect($shortUrl->originalUrl());
+        return response()->json([
+            'id' => $shortUrl->id(),
+            'url' => $shortUrl->originalUrl(),
+            'code' => $shortUrl->shortCode(),
+            'clicks' => $shortUrl->clicks(),
+            'expires_at' => $shortUrl->expiresAt()->format('Y-m-d H:i:s')
+        ]);
     }
 }

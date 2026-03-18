@@ -11,14 +11,17 @@ class EloquentShortUrlRepository implements ShortUrlRepository
 {
     public function save(ShortUrl $url): ShortUrl
     {
-        if ($url->id()) {
-            $model = ShortUrlModel::findOrFail($url->id());
-        } else {
+        $model = $url->id()
+            ? ShortUrlModel::find($url->id())
+            : null;
+        if (!$model) {
             $model = new ShortUrlModel();
+            $model->id = $url->id();
         }
         $model->original_url = $url->originalUrl();
         $model->short_code = $url->shortCode();
         $model->clicks = $url->clicks();
+        $model->expires_at = $url->expiresAt()->format('Y-m-d H:i:s');
         $model->save();
         return ShortUrlMapper::toEntity($model);
     }
