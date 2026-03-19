@@ -12,4 +12,5 @@ Route::controller(ShortUrlController::class)->middleware('api')->group(function 
 Route::controller(AnalyticsController::class)->middleware('api')->group(function () {
     Route::get('/analytics/{code}', 'analytics');
     Route::get('/analytics-top', 'top');
+    Route::get('/analytics-top-hour', 'topLastHour');
 });

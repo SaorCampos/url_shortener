@@ -56,12 +56,17 @@ class RedirectController extends Controller
         $now = now();
         $minute = $now->format('YmdHi');
         Redis::pipeline(function ($pipe) use ($code, $minute, $now) {
-            // real time analytics
+            // total
             $pipe->incr("shorturl:clicks:total:{$code}");
+            // bucket per minute
             $pipe->incr("shorturl:clicks:minute:{$code}:{$minute}");
-            $pipe->zincrby("shorturl:top", 1, $code);
             $pipe->expire("shorturl:clicks:minute:{$code}:{$minute}", 86400);
-            // async persistence (STREAM)
+            // ranking global
+            $pipe->zincrby("shorturl:top", 1, $code);
+            // ranking per minute
+            $pipe->zincrby("shorturl:top:{$minute}", 1, $code);
+            $pipe->expire("shorturl:top:{$minute}", 86400);
+            // stream (async persistence)
             $pipe->xadd('shorturl:clicks', '*', [
                 'code' => $code,
                 'ts' => $now->timestamp
