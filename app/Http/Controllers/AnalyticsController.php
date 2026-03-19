@@ -74,7 +74,57 @@ class AnalyticsController extends Controller
         }
         return response()->json(array_slice($result, 0, 10));
     }
-
+    public function countries(string $code)
+    {
+        $data = Redis::hgetall("shorturl:country:{$code}");
+        $result = [];
+        foreach ($data as $country => $count) {
+            $result[] = [
+                'country' => $country,
+                'clicks' => (int) $count
+            ];
+        }
+        return response()->json($result);
+    }
+    public function heatmap(string $code)
+    {
+        $data = Redis::hgetall("shorturl:heatmap:{$code}");
+        $result = [];
+        for ($i = 0; $i < 24; $i++) {
+            $hour = str_pad($i, 2, '0', STR_PAD_LEFT);
+            $result[$hour] = (int) ($data[$hour] ?? 0);
+        }
+        return response()->json($result);
+    }
+    public function geoHeatmap(string $code)
+    {
+        $points = Redis::georadius(
+            "shorturl:geo:{$code}",
+            -38.5267,
+            -3.7319,
+            20000,
+            'km',
+            ['WITHCOORD']
+        );
+        $grid = [];
+        foreach ($points as $item) {
+            $lng = (float) $item[1][0];
+            $lat = (float) $item[1][1];
+            // groups grid (0.5 degree)
+            $key = round($lat, 1) . ':' . round($lng, 1);
+            $grid[$key] = ($grid[$key] ?? 0) + 1;
+        }
+        $result = [];
+        foreach ($grid as $key => $count) {
+            [$lat, $lng] = explode(':', $key);
+            $result[] = [
+                'lat' => (float) $lat,
+                'lng' => (float) $lng,
+                'intensity' => $count
+            ];
+        }
+        return response()->json($result);
+    }
 
     private function aggregateMinutes(array $minutes): array
     {

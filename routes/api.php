@@ -13,4 +13,7 @@ Route::controller(AnalyticsController::class)->middleware('api')->group(function
     Route::get('/analytics/{code}', 'analytics');
     Route::get('/analytics-top-day', 'top');
     Route::get('/analytics-top-hour', 'topLastHour');
+    Route::get('/analytics-countries/{code}', 'countries');
+    Route::get('/analytics-heatmap/{code}', 'heatmap');
+    Route::get('/analytics-geo/{code}', 'geoHeatmap');
 });
