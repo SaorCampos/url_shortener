@@ -53,9 +53,19 @@ class RedirectController extends Controller
 
     private function trackClick(string $code): void
     {
-        Redis::xadd('shorturl:clicks', '*', [
-            'code' => $code,
-            'ts' => now()->timestamp
-        ]);
+        $now = now();
+        $minute = $now->format('YmdHi');
+        Redis::pipeline(function ($pipe) use ($code, $minute, $now) {
+            // real time analytics
+            $pipe->incr("shorturl:clicks:total:{$code}");
+            $pipe->incr("shorturl:clicks:minute:{$code}:{$minute}");
+            $pipe->zincrby("shorturl:top", 1, $code);
+            $pipe->expire("shorturl:clicks:minute:{$code}:{$minute}", 86400);
+            // async persistence (STREAM)
+            $pipe->xadd('shorturl:clicks', '*', [
+                'code' => $code,
+                'ts' => $now->timestamp
+            ]);
+        });
     }
 }
