@@ -57,16 +57,34 @@ class RedirectController extends Controller
         $now = now();
         $minute = $now->format('YmdHi');
         $hour = $now->format('H');
-        $ip = request()->header('X-Forwarded-For') ?? request()->ip();
-        $position = null;
-        try {
-            $position = Location::get($ip);
-        } catch (\Throwable $e) {}
-        $lat = $position?->latitude;
-        $lng = $position?->longitude;
-        $country = $position?->countryCode ?? 'XX';
-        Redis::pipeline(function ($pipe) use ($code, $minute, $now, $hour, $lat, $lng, $ip, $country) {
-            // analytics
+        $ip = request()->ip();
+        if (app()->environment('local')) {
+            $ip = request()->header('X-Forwarded-For') ?? $ip;
+        }
+        $geoCacheKey = "geo:ip:{$ip}";
+        $geo = Redis::get($geoCacheKey);
+        if ($geo) {
+            $geo = json_decode($geo, true);
+        } else {
+            $position = null;
+            try {
+                $position = Location::get($ip);
+            } catch (\Throwable $e) {
+                $position = null;
+            }
+            if ($position && $position !== false) {
+                $geo = [
+                    'country' => $position->countryCode,
+                ];
+            } else {
+                $geo = [
+                    'country' => null,
+                ];
+            }
+            Redis::setex($geoCacheKey, 86400, json_encode($geo));
+        }
+        $country = $geo['country'] ?? 'UNKNOWN';
+        Redis::pipeline(function ($pipe) use ($code, $minute, $hour, $now, $country, $ip) {
             $pipe->incr("shorturl:clicks:total:{$code}");
             $pipe->incr("shorturl:clicks:minute:{$code}:{$minute}");
             $pipe->expire("shorturl:clicks:minute:{$code}:{$minute}", 86400);
@@ -75,13 +93,9 @@ class RedirectController extends Controller
             $pipe->expire("shorturl:top:{$minute}", 86400);
             $pipe->hincrby("shorturl:heatmap:{$code}", $hour, 1);
             $pipe->hincrby("shorturl:country:{$code}", $country, 1);
-            // GEO
-            if ($lat && $lng) {
-                $pipe->geoadd("shorturl:geo:{$code}", $lng, $lat, uniqid());
-            }
-            // stream
             $pipe->xadd('shorturl:clicks', '*', [
                 'code' => $code,
+                'ip' => $ip,
                 'ts' => $now->timestamp
             ]);
         });
