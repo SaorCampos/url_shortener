@@ -12,6 +12,7 @@ use App\Infrastructure\Cache\HotUrlCache;
 use App\Infrastructure\Cache\RedisService;
 use App\Infrastructure\Ids\PoolIdGenerator;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,7 +31,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (app()->environment('local')) {
+            Request::setTrustedProxies(
+                ['0.0.0.0/0', '127.0.0.1'],
+                Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST
+            );
+        }
     }
 
     private function registerRepositories(): void

@@ -33,6 +33,8 @@ services:
       - host.docker.internal:host-gateway
     networks:
       - urlshortener
+    env_file:
+      - .env
 
   nginx:
     container_name: urlshortener_nginx
@@ -51,7 +53,7 @@ services:
     image: redis:latest
     restart: unless-stopped
     ports:
-      - "16379:6379"
+      - "6379:6379"
     networks:
       - urlshortener
 
@@ -78,6 +80,8 @@ services:
       - db
     networks:
       - urlshortener
+    env_file:
+      - .env
 
   idpool:
     container_name: urlshortener_idpool
@@ -92,20 +96,6 @@ services:
       - redis
     networks:
       - urlshortener
-  flushclicks:
-    container_name: urlshortener_flushclicks
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: php artisan shorturl:flush-clicks
-    restart: unless-stopped
-    volumes:
-      - .:/var/www
-    networks:
-    - urlshortener
-    depends_on:
-      - redis
-      - db
 
 networks:
   urlshortener:

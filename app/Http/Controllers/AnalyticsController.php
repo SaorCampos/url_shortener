@@ -102,7 +102,7 @@ class AnalyticsController extends Controller
             "shorturl:geo:{$code}",
             -38.5267,
             -3.7319,
-            20000,
+            200000,
             'km',
             ['WITHCOORD']
         );

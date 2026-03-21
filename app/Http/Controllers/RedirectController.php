@@ -58,8 +58,20 @@ class RedirectController extends Controller
         $minute = $now->format('YmdHi');
         $hour = $now->format('H');
         $ip = request()->ip();
-        if (app()->environment('local')) {
-            $ip = request()->header('X-Forwarded-For') ?? $ip;
+        if (app()->environment('local') && $this->isPrivateIp($ip)) {
+            $ipsFake = [
+                '177.92.7.1',
+                '8.8.8.8',
+                '2.20.141.0',
+                '202.160.128.0',
+                '105.107.107.107',
+                '186.192.100.100',
+                '189.10.10.10',
+                '177.104.123.123',
+                '103.103.103.103',
+                '179.123.123.123',
+            ];
+            $ip = $ipsFake[array_rand($ipsFake)];
         }
         $geoCacheKey = "geo:ip:{$ip}";
         $geo = Redis::get($geoCacheKey);
@@ -99,5 +111,9 @@ class RedirectController extends Controller
                 'ts' => $now->timestamp
             ]);
         });
+    }
+    private function isPrivateIp(string $ip): bool
+    {
+        return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
 }
