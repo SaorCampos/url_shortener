@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
+use Stevebauman\Location\Facades\Location;
 
 class ProcessClickStream extends Command
 {
@@ -14,93 +15,136 @@ class ProcessClickStream extends Command
 
     private const STREAM = 'shorturl:clicks';
     private const GROUP = 'click-workers';
-    private const CONSUMER = 'worker-1';
+
+    private string $consumer;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->consumer = 'worker-' . gethostname() . '-' . uniqid();
+    }
 
     public function handle()
     {
-        $this->ensureGroup();
+        $this->info("Worker iniciado: {$this->consumer}");
+        $this->ensureStreamAndGroup();
         while (true) {
-            $this->recoverPending();
-            $events = Redis::xreadgroup(
-                self::GROUP,
-                self::CONSUMER,
-                [self::STREAM => '>'],
-                500,
-                2000
-            );
-            if (!$events) {
-                usleep(300000);
-                continue;
+            try {
+                $events = Redis::xreadgroup(
+                    self::GROUP,
+                    $this->consumer,
+                    [self::STREAM => '>'],
+                    500,
+                    2000
+                );
+                if ($events === false) {
+                    $client = Redis::connection()->client();
+                    $error = $client->getLastError();
+                    if ($error) {
+                        Log::error("Redis Error no XREADGROUP: " . $error);
+                        $client->clearLastError();
+                        if (str_contains($error, 'NOGROUP')) {
+                            $this->ensureStreamAndGroup();
+                        }
+                    }
+                    sleep(1);
+                    continue;
+                }
+                if (empty($events) || empty($events[self::STREAM])) {
+                    usleep(300000);
+                    continue;
+                }
+                $this->processEvents($events[self::STREAM]);
+            } catch (\Throwable $e) {
+                Log::error("Worker crashou: " . $e->getMessage());
+                sleep(1);
             }
-            $this->processEvents($events[self::STREAM]);
         }
+    }
+
+    private function ensureStreamAndGroup(): void
+    {
+        Log::info('Garantindo stream e group...');
+        $client = Redis::connection()->client();
+        $created = $client->xGroup('CREATE', self::STREAM, self::GROUP, '0', true);
+        if (!$created) {
+            $error = $client->getLastError();
+            if ($error && str_contains($error, 'BUSYGROUP')) {
+                $client->clearLastError();
+                return;
+            }
+            Log::error('Erro ao criar group: ' . $error);
+            throw new \RuntimeException('Falha ao criar o Consumer Group: ' . $error);
+        }
+        Log::info('Group criado com sucesso');
     }
 
     private function processEvents(array $events): void
     {
         $counts = [];
         $ids = [];
-        foreach ($events as $id => $fields) {
-            $code = $fields['code'];
+        foreach ($events as $id => $fieldsRaw) {
+            if (array_keys($fieldsRaw) !== range(0, count($fieldsRaw) - 1)) {
+                $fields = $fieldsRaw;
+            } else {
+                $fields = [];
+                for ($i = 0; $i < count($fieldsRaw); $i += 2) {
+                    if (!isset($fieldsRaw[$i + 1])) continue;
+                    $fields[$fieldsRaw[$i]] = $fieldsRaw[$i + 1];
+                }
+            }
+            $code = $fields['code'] ?? null;
+            if (!$code) {
+                Log::warning('Evento inválido', $fields);
+                continue;
+            }
+            $ip = $fields['ip'] ?? null;
             $counts[$code] = ($counts[$code] ?? 0) + 1;
+            if ($ip) {
+                try {
+                    $position = Location::get($ip);
+                    if ($position && $position !== false) {
+                        Redis::geoadd(
+                            "shorturl:geo:{$code}",
+                            $position->longitude,
+                            $position->latitude,
+                            uniqid()
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Erro no geo IP: ' . $e->getMessage());
+                }
+            }
             $ids[] = $id;
         }
-        $this->persistCounts($counts);
-        Redis::xack(self::STREAM, self::GROUP, $ids);
+        if ($counts) {
+            $this->persistCounts($counts);
+        }
+        if ($ids) {
+            Redis::xack(self::STREAM, self::GROUP, $ids);
+        }
     }
+
     private function persistCounts(array $counts): void
     {
-        if (empty($counts)) {
-            return;
-        }
         $values = [];
         $bindings = [];
         foreach ($counts as $code => $count) {
             $values[] = "(?, ?::int)";
             $bindings[] = $code;
-            $bindings[] = (int) $count;
+            $bindings[] = $count;
         }
         $sql = "
-        UPDATE short_urls s
-        SET clicks = s.clicks + v.count::int
-        FROM (
-            VALUES " . implode(',', $values) . "
-        ) AS v(short_code, count)
-        WHERE s.short_code = v.short_code
-    ";
+            UPDATE short_urls s
+            SET clicks = s.clicks + v.count
+            FROM (
+                VALUES " . implode(',', $values) . "
+            ) AS v(short_code, count)
+            WHERE s.short_code = v.short_code
+        ";
         DB::update($sql, $bindings);
-    }
-    private function ensureGroup(): void
-    {
-        try {
-            Redis::xgroup(
-                'CREATE',
-                self::STREAM,
-                self::GROUP,
-                '0',
-                true
-            );
-        } catch (\Exception $e) {
-            Log::warning("Group creation failed: " . $e->getMessage());
-        }
-    }
-
-    private function recoverPending(): void
-    {
-        try {
-            $result = Redis::xautoclaim(
-                self::STREAM,
-                self::GROUP,
-                self::CONSUMER,
-                60000,
-                '0-0',
-                100
-            );
-            if (!empty($result[1])) {
-                $this->processEvents($result[1]);
-            }
-        } catch (\Exception $e) {
-            Log::warning("XAUTOCLAIM failed: " . $e->getMessage());
+        foreach (array_keys($counts) as $code) {
+            Redis::del("shorturl:{$code}");
         }
     }
 }

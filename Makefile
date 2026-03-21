@@ -57,10 +57,12 @@ queue:
 
 setup:
 	docker compose up -d --build
-	docker compose exec $(APP_CONTAINER) composer install
 	cp -n .env.example .env || true
 	docker compose exec $(APP_CONTAINER) php artisan key:generate
+	sleep 1
 	docker compose exec $(APP_CONTAINER) php artisan migrate
+	docker compose exec $(APP_CONTAINER) php artisan config:clear
+	docker compose exec $(APP_CONTAINER) php artisan cache:clear
 
 reset:
 	docker compose down -v
