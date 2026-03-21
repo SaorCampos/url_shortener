@@ -27,7 +27,6 @@ class ProcessClickStream extends Command
     public function handle()
     {
         $this->info("Worker iniciado: {$this->consumer}");
-        // Log::info("Worker iniciado: {$this->consumer}");
         $this->ensureStreamAndGroup();
         while (true) {
             try {
@@ -45,7 +44,6 @@ class ProcessClickStream extends Command
                         Log::error("Redis Error no XREADGROUP: " . $error);
                         $client->clearLastError();
                         if (str_contains($error, 'NOGROUP')) {
-                            // Log::info("Tentando recriar o grupo...");
                             $this->ensureStreamAndGroup();
                         }
                     }
@@ -56,7 +54,6 @@ class ProcessClickStream extends Command
                     usleep(300000);
                     continue;
                 }
-                Log::info('Eventos recebidos', ['count' => count($events[self::STREAM])]);
                 $this->processEvents($events[self::STREAM]);
             } catch (\Throwable $e) {
                 Log::error("Worker crashou: " . $e->getMessage());
@@ -73,7 +70,6 @@ class ProcessClickStream extends Command
         if (!$created) {
             $error = $client->getLastError();
             if ($error && str_contains($error, 'BUSYGROUP')) {
-                // Log::info('Group já existe');
                 $client->clearLastError();
                 return;
             }
@@ -85,7 +81,6 @@ class ProcessClickStream extends Command
 
     private function processEvents(array $events): void
     {
-        // Log::info('Processando eventos', ['count' => count($events)]);
         $counts = [];
         $ids = [];
         foreach ($events as $id => $fieldsRaw) {
@@ -98,7 +93,6 @@ class ProcessClickStream extends Command
                     $fields[$fieldsRaw[$i]] = $fieldsRaw[$i + 1];
                 }
             }
-            // Log::info('Processando evento', ['id' => $id, 'fields' => $fields]);
             $code = $fields['code'] ?? null;
             if (!$code) {
                 Log::warning('Evento inválido', $fields);
@@ -124,12 +118,10 @@ class ProcessClickStream extends Command
             $ids[] = $id;
         }
         if ($counts) {
-            Log::info('Persistindo clicks', $counts);
             $this->persistCounts($counts);
         }
         if ($ids) {
             Redis::xack(self::STREAM, self::GROUP, $ids);
-            // Log::info('Eventos confirmados (ACK)', ['count' => count($ids)]);
         }
     }
 
@@ -150,7 +142,9 @@ class ProcessClickStream extends Command
             ) AS v(short_code, count)
             WHERE s.short_code = v.short_code
         ";
-        $updated = DB::update($sql, $bindings);
-        // Log::info('Rows afetadas', ['count' => $updated]);
+        DB::update($sql, $bindings);
+        foreach (array_keys($counts) as $code) {
+            Redis::del("shorturl:{$code}");
+        }
     }
 }

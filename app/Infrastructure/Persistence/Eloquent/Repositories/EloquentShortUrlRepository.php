@@ -6,6 +6,7 @@ use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use App\Infrastructure\Persistence\Eloquent\Mappers\ShortUrlMapper;
 use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
+use Illuminate\Support\Facades\Redis;
 
 class EloquentShortUrlRepository implements ShortUrlRepository
 {
@@ -30,6 +31,10 @@ class EloquentShortUrlRepository implements ShortUrlRepository
         $model = ShortUrlModel::where('short_code', $code)->first();
         if (!$model) {
             return null;
+        }
+        $redisClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
+        if ($redisClicks > $model->clicks) {
+            $model->clicks = $redisClicks;
         }
         return ShortUrlMapper::toEntity($model);
     }
