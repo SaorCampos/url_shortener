@@ -57,6 +57,7 @@ class RedirectController extends Controller
         $now = now();
         $minute = $now->format('YmdHi');
         $hour = $now->format('H');
+        $today = $now->format('Ymd');
         $ip = request()->ip();
         if (app()->environment('local') && $this->isPrivateIp($ip)) {
             $ipsFake = [
@@ -96,7 +97,7 @@ class RedirectController extends Controller
             Redis::setex($geoCacheKey, 86400, json_encode($geo));
         }
         $country = $geo['country'] ?? 'UNKNOWN';
-        Redis::pipeline(function ($pipe) use ($code, $minute, $hour, $now, $country, $ip) {
+        Redis::pipeline(function ($pipe) use ($code, $minute, $hour, $now, $country, $ip, $today) {
             $pipe->incr("shorturl:clicks:total:{$code}");
             $pipe->incr("shorturl:clicks:minute:{$code}:{$minute}");
             $pipe->expire("shorturl:clicks:minute:{$code}:{$minute}", 86400);
@@ -104,11 +105,14 @@ class RedirectController extends Controller
             $pipe->zincrby("shorturl:top:{$minute}", 1, $code);
             $pipe->expire("shorturl:top:{$minute}", 86400);
             $pipe->hincrby("shorturl:heatmap:{$code}", $hour, 1);
-            $pipe->hincrby("shorturl:country:{$code}", $country, 1);
+            $pipe->hincrby("shorturl:country:{$code}:{$today}", $country, 1);
+            $pipe->expire("shorturl:country:{$code}:{$today}", config('shorturl.default_geo_expiration_seconds'));
             $pipe->xadd('shorturl:clicks', '*', [
                 'code' => $code,
                 'ip' => $ip,
-                'ts' => $now->timestamp
+                'ts' => $now->timestamp,
+                'user_agent' => request()->userAgent(),
+                'referer' => request()->header('Referer'),
             ]);
         });
     }

@@ -18,8 +18,7 @@ class ProcessClickStream extends Command
 
     private string $consumer;
 
-    public function __construct()
-    {
+    public function __construct() {
         parent::__construct();
         $this->consumer = 'worker-' . gethostname() . '-' . uniqid();
     }
@@ -83,48 +82,58 @@ class ProcessClickStream extends Command
     {
         $counts = [];
         $ids = [];
+        $inserts = [];
+        $normalizedEvents = [];
         foreach ($events as $id => $fieldsRaw) {
-            if (array_keys($fieldsRaw) !== range(0, count($fieldsRaw) - 1)) {
-                $fields = $fieldsRaw;
-            } else {
-                $fields = [];
-                for ($i = 0; $i < count($fieldsRaw); $i += 2) {
-                    if (!isset($fieldsRaw[$i + 1])) continue;
-                    $fields[$fieldsRaw[$i]] = $fieldsRaw[$i + 1];
-                }
-            }
+            $fields = (array_keys($fieldsRaw) !== range(0, count($fieldsRaw) - 1))
+                ? $fieldsRaw
+                : $this->unflattenFields($fieldsRaw);
+
             $code = $fields['code'] ?? null;
-            if (!$code) {
-                Log::warning('Evento inválido', $fields);
-                continue;
-            }
-            $ip = $fields['ip'] ?? null;
+            if (!$code) continue;
+            $normalizedEvents[$id] = $fields;
             $counts[$code] = ($counts[$code] ?? 0) + 1;
-            if ($ip) {
-                try {
-                    $position = Location::get($ip);
-                    if ($position && $position !== false) {
-                        Redis::geoadd(
-                            "shorturl:geo:{$code}",
-                            $position->longitude,
-                            $position->latitude,
-                            uniqid()
-                        );
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning('Erro no geo IP: ' . $e->getMessage());
-                }
-            }
             $ids[] = $id;
         }
-        if ($counts) {
-            $this->persistCounts($counts);
+        if (empty($normalizedEvents)) return;
+        $codes = array_unique(array_column($normalizedEvents, 'code'));
+        $codeToIdMap = DB::table('short_urls')
+            ->whereIn('short_code', $codes)
+            ->pluck('id', 'short_code')
+            ->toArray();
+        foreach ($normalizedEvents as $id => $fields) {
+            $code = $fields['code'];
+            $ip = $fields['ip'] ?? null;
+            $shortUrlId = $codeToIdMap[$code] ?? null;
+            if ($ip) {
+                $this->handleGeoLocation($code, $ip);
+            }
+            if ($shortUrlId) {
+                $inserts[] = [
+                    'short_url_id' => $shortUrlId,
+                    'ip' => $ip,
+                    'user_agent' => $fields['user_agent'] ?? null,
+                    'referer' => $fields['referer'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
         }
-        if ($ids) {
-            Redis::xack(self::STREAM, self::GROUP, $ids);
+        if ($counts) $this->persistCounts($counts);
+        if ($inserts) DB::table('clicks')->insert($inserts);
+        if ($ids) Redis::xack(self::STREAM, self::GROUP, $ids);
+    }
+    private function handleGeoLocation(string $code, string $ip): void
+    {
+        try {
+            $position = Location::get($ip);
+            if ($position) {
+                Redis::geoadd("shorturl:geo:{$code}", $position->longitude, $position->latitude, uniqid());
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Erro GeoIP: " . $e->getMessage());
         }
     }
-
     private function persistCounts(array $counts): void
     {
         $values = [];

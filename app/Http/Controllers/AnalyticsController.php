@@ -76,13 +76,17 @@ class AnalyticsController extends Controller
     }
     public function countries(string $code)
     {
-        $data = Redis::hgetall("shorturl:country:{$code}");
+        $totals = [];
+        for ($i = 0; $i < 30; $i++) {
+            $date = now()->subDays($i)->format('Ymd');
+            $data = Redis::hgetall("shorturl:country:{$code}:{$date}");
+            foreach ($data as $country => $count) {
+                $totals[$country] = ($totals[$country] ?? 0) + (int) $count;
+            }
+        }
         $result = [];
-        foreach ($data as $country => $count) {
-            $result[] = [
-                'country' => $country,
-                'clicks' => (int) $count
-            ];
+        foreach ($totals as $country => $count) {
+            $result[] = ['country' => $country, 'clicks' => $count];
         }
         return response()->json($result);
     }
