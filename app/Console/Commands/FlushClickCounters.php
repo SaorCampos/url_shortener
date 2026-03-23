@@ -3,71 +3,86 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
 class FlushClickCounters extends Command
 {
-    protected $signature = 'shorturl:flush-clicks';
-    protected $description = 'Flush Redis click counters to database';
-
-    private const PATTERN = 'shorturl:clicks:*';
+      #   command: php artisan shorturl:flush-clicks
+    protected $signature = 'shorturl:flush-clicks {--days=7 : wipes cached click counters older than specified days}';
+    protected $description = 'Wipe cached click counters from Redis to free up memory. Use with caution!';
 
     public function handle()
     {
-        while (true) {
-            $cursor = 0;
-            $counts = [];
-            do {
-                [$cursor, $keys] = Redis::scan(
-                    $cursor,
-                    'MATCH',
-                    self::PATTERN,
-                    'COUNT',
-                    100
-                );
-                if (!$keys) {
-                    continue;
-                }
+        $days = (int) $this->option('days');
+        $this->info("Iniciando limpeza de contadores com mais de {$days} dias...");
+        $cursor = "0";
+        $countDeleted = 0;
+        do {
+            [$cursor, $keys] = Redis::scan($cursor, [
+                'MATCH' => 'shorturl:clicks:minute:*',
+                'COUNT' => 1000
+            ]);
+            if (!empty($keys)) {
                 foreach ($keys as $key) {
-                    $code = str_replace('shorturl:clicks:', '', $key);
-                    $count = Redis::getset($key, 0);
-                    if ($count !== null && (int)$count > 0) {
-                        $counts[$code] = ($counts[$code] ?? 0) + (int)$count;
+                    $parts = explode(':', $key);
+                    $dateStr = end($parts);
+                    try {
+                        $keyDate = \DateTimeImmutable::createFromFormat('YmdHi', $dateStr);
+                        if ($keyDate && $keyDate < now()->subDays($days)) {
+                            Redis::del($key);
+                            $countDeleted++;
+                        }
+                    } catch (\Exception $e) {
+                        continue;
                     }
                 }
-                if (count($counts) >= 500) {
-                    $this->persistCounts($counts);
-                    $counts = [];
-                }
-            } while ($cursor != 0);
-            if ($counts) {
-                $this->persistCounts($counts);
             }
-            sleep(5);
-        }
+        } while ($cursor !== "0");
+        $this->cleanupTopMinutes($days);
+        $this->cleanUpGeoHeatMap(30);
+        $this->info("Limpeza concluída! {$countDeleted} chaves removidas.");
     }
 
-    private function persistCounts(array $counts): void
+    private function cleanupTopMinutes(int $days)
     {
-        if (!$counts) {
-            return;
-        }
-        $values = [];
-        $bindings = [];
-        foreach ($counts as $code => $count) {
-            $values[] = "(?, ?)";
-            $bindings[] = $code;
-            $bindings[] = $count;
-        }
-        $sql = "
-            UPDATE short_urls s
-            SET clicks = s.clicks + v.count
-            FROM (
-                VALUES " . implode(',', $values) . "
-            ) AS v(short_code, count)
-            WHERE s.short_code = v.short_code
-        ";
-        DB::update($sql, $bindings);
+        $cursor = "0";
+        do {
+            [$cursor, $keys] = Redis::scan($cursor, [
+                'MATCH' => 'shorturl:top:*', // shorturl:top:YmdHi
+                'COUNT' => 1000
+            ]);
+            foreach ($keys as $key) {
+                $parts = explode(':', $key);
+                $dateStr = end($parts);
+                $keyDate = \DateTimeImmutable::createFromFormat('YmdHi', $dateStr);
+                if ($keyDate && $keyDate < now()->subDays($days)) {
+                    Redis::del($key);
+                }
+            }
+        } while ($cursor !== "0");
+    }
+    private function cleanUpGeoHeatMap(int $days)
+    {
+        $cursor = "0";
+        $count = 0;
+        $this->info("Limpando estatísticas de países com mais de {$days} dias...");
+        do {
+            [$cursor, $keys] = Redis::scan($cursor, [
+                'MATCH' => 'shorturl:country:*:*',
+                'COUNT' => 1000
+            ]);
+            foreach ($keys as $key) {
+                $parts = explode(':', $key);
+                $dateStr = end($parts);
+                if (strlen($dateStr) === 8 && is_numeric($dateStr)) {
+                    $keyDate = \DateTimeImmutable::createFromFormat('Ymd', $dateStr);
+                    if ($keyDate && $keyDate < now()->subDays($days)) {
+                        Redis::del($key);
+                        $count++;
+                    }
+                }
+            }
+        } while ($cursor !== "0");
+        $this->info("Removidas {$count} chaves de países obsoletas.");
     }
 }
