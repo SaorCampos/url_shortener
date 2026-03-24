@@ -12,7 +12,15 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libpq-dev \
     zip \
-    unzip
+    unzip \
+    build-essential \
+    libssl-dev \
+    libcurl4-openssl-dev \
+    libbrotli-dev
+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+RUN npm install -g chokidar
 
 # PHP Extensions
 RUN docker-php-ext-install \
@@ -26,11 +34,12 @@ RUN docker-php-ext-install \
     gd \
     sockets
 
-# Redis (PECL)
+# Redis and Swoole via PECL
 RUN pecl install redis \
-    && docker-php-ext-enable redis
+    && printf "\n" | pecl install swoole \
+    && docker-php-ext-enable redis swoole
 
-# Clean up
+
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Composer
@@ -43,7 +52,6 @@ RUN useradd -G www-data,root -u $uid -d /home/$user $user \
 
 WORKDIR /var/www
 
-# Install dependencies
 COPY composer.json composer.lock ./
 
 RUN composer install \
@@ -53,10 +61,12 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
-# Copy project
 COPY . .
 
 # Config PHP
 COPY docker/php/custom.ini /usr/local/etc/php/conf.d/
+
+# Octane
+EXPOSE 8000
 
 USER $user

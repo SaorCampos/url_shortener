@@ -63,7 +63,7 @@ setup:
 	docker compose exec $(APP_CONTAINER) php artisan migrate
 	docker compose exec $(APP_CONTAINER) php artisan config:clear
 	docker compose exec $(APP_CONTAINER) php artisan cache:clear
-
+	docker compose exec $(APP_CONTAINER) php artisan octane:install --server=swoole
 reset:
 	docker compose down -v
 	docker compose up -d --build
