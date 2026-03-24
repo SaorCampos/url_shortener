@@ -21,20 +21,23 @@ class CreateShortUrlCommandHandler
 
     public function handle(CreateShortUrlCommand $command): ShortUrl
     {
+        $existing = $this->repository->findByOriginalUrl($command->url);
+        if ($existing) {
+            return $existing;
+        }
         $id = $this->idGenerator->generate();
-        $obfuscatedId = ($id * 2654435761) & 0xFFFFFFFF;
-        $code = $this->encoder->encode($obfuscatedId);
-        $shortUrl = ShortUrl::create(
-            $id,
-            $command->url,
-            $code
-        );
-        $shortUrl = $this->repository->save($shortUrl);
-        Redis::setex(
-            "shorturl:redirect:{$code}",
-            86400,
-            $command->url
-        );
+        $code = $this->encoder->generate($command->url);
+        $existingByCode = $this->repository->findByCode($code);
+        if ($existingByCode) {
+            return $existingByCode;
+        }
+        $shortUrl = ShortUrl::create($id, $command->url, $code);
+        try {
+            $this->repository->save($shortUrl);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            return $this->repository->findByCode($code);
+        }
+        Redis::setex("shorturl:redirect:{$code}", 86400, $command->url);
         $this->bloomFilter->add($code);
         return $shortUrl;
     }

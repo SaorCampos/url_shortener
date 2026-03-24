@@ -9,7 +9,7 @@ class FlushClickCounters extends Command
 {
       #   command: php artisan shorturl:flush-clicks
     protected $signature = 'shorturl:flush-clicks {--days=7 : wipes cached click counters older than specified days}';
-    protected $description = 'Wipe cached click counters from Redis to free up memory. Use with caution!';
+    protected $description = 'Wipe cached click counters from Redis to free up memory.';
 
     public function handle()
     {

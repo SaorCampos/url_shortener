@@ -7,13 +7,18 @@ use Illuminate\Support\Facades\Redis;
 class BloomFilterService
 {
     private const KEY = 'shorturl:bloom';
+    private const SIZE = 1000000;
 
     public function add(string $code): void
     {
-        Redis::setbit(self::KEY, crc32($code) % 1000000, 1);
+        $index = abs(crc32($code)) % self::SIZE;
+        Redis::setbit(self::KEY, $index, 1);
     }
+
     public function mightExist(string $code): bool
     {
-        return Redis::getbit(self::KEY, crc32($code) % 1000000) === 1;
+        $index = abs(crc32($code)) % self::SIZE;
+        $bit = Redis::getbit(self::KEY, $index);
+        return (bool) $bit;
     }
 }

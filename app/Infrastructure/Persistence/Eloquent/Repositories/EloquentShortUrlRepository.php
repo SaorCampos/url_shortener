@@ -12,18 +12,15 @@ class EloquentShortUrlRepository implements ShortUrlRepository
 {
     public function save(ShortUrl $url): ShortUrl
     {
-        $model = $url->id()
-            ? ShortUrlModel::find($url->id())
-            : null;
-        if (!$model) {
-            $model = new ShortUrlModel();
-            $model->id = $url->id();
-        }
-        $model->original_url = $url->originalUrl();
-        $model->short_code = $url->shortCode();
-        $model->clicks = $url->clicks();
-        $model->expires_at = $url->expiresAt()->format('Y-m-d H:i:s');
-        $model->save();
+        $model = ShortUrlModel::updateOrCreate(
+            ['id' => $url->id()],
+            [
+                'original_url' => $url->originalUrl(),
+                'short_code'   => $url->shortCode(),
+                'clicks'       => $url->clicks(),
+                'expires_at'   => $url->expiresAt(),
+            ]
+        );
         return ShortUrlMapper::toEntity($model);
     }
     public function findByCode(string $code): ?ShortUrl
@@ -38,9 +35,17 @@ class EloquentShortUrlRepository implements ShortUrlRepository
         }
         return ShortUrlMapper::toEntity($model);
     }
-    public function findById(int $id): ?ShortUrl
+    public function findById(string $id): ?ShortUrl
     {
         $model = ShortUrlModel::find($id);
+        if (!$model) {
+            return null;
+        }
+        return ShortUrlMapper::toEntity($model);
+    }
+    public function findByOriginalUrl(string $url): ?ShortUrl
+    {
+        $model = ShortUrlModel::where('original_url', $url)->first();
         if (!$model) {
             return null;
         }

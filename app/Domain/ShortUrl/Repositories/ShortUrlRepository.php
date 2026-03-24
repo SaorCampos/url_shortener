@@ -8,5 +8,6 @@ interface ShortUrlRepository
 {
     public function save(ShortUrl $url): ShortUrl;
     public function findByCode(string $code): ?ShortUrl;
-    public function findById(int $id): ?ShortUrl;
+    public function findById(string $id): ?ShortUrl;
+    public function findByOriginalUrl(string $url): ?ShortUrl;
 }

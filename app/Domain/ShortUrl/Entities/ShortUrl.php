@@ -10,7 +10,7 @@ use DateTimeImmutable;
 class ShortUrl
 {
     public function __construct(
-        private ?int $id,
+        private string $id,
         private string $originalUrl,
         private ShortCode $shortCode,
         private int $clicks = 0,
@@ -18,7 +18,7 @@ class ShortUrl
     ) {}
 
     public static function create(
-        int $id,
+        string $id,
         string $url,
         string $code,
         ?ExpirationDate $expiresAt = null
@@ -40,7 +40,7 @@ class ShortUrl
     public static function restore(ShortUrlData $data): self
     {
         return new self(
-            $data->id,
+            (string)$data->id,
             $data->originalUrl,
             ShortCode::from($data->shortCode),
             $data->clicks,
@@ -48,7 +48,7 @@ class ShortUrl
         );
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }
