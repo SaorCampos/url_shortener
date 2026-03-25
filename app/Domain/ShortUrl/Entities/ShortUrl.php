@@ -80,4 +80,8 @@ class ShortUrl
     {
         $this->clicks += $amount;
     }
+    public function updateClicks(int $total): void
+    {
+        $this->clicks = $total;
+    }
 }

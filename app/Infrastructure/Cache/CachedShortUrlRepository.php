@@ -2,9 +2,10 @@
 
 namespace App\Infrastructure\Cache;
 
-use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
-use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\Shared\Cache\CacheService;
+use App\Domain\ShortUrl\Entities\ShortUrl;
+use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
+use Illuminate\Support\Facades\Redis;
 
 class CachedShortUrlRepository implements ShortUrlRepository
 {
@@ -23,15 +24,20 @@ class CachedShortUrlRepository implements ShortUrlRepository
     public function findByCode(string $code): ?ShortUrl
     {
         $key = $this->cacheKey($code);
-        $cached = $this->cache->get($key);
-        if ($cached !== null) {
-            return $cached;
+        $shortUrl = $this->cache->get($key);
+        if ($shortUrl === null) {
+            $shortUrl = $this->repository->findByCode($code);
+            if ($shortUrl) {
+                $this->cache->set($key, $shortUrl, 3600);
+            }
         }
-        $dbUrl = $this->repository->findByCode($code);
-        if ($dbUrl) {
-            $this->cache->set($key, $dbUrl, 3600);
+        if ($shortUrl instanceof ShortUrl) {
+            $realTimeClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
+            if ($realTimeClicks > $shortUrl->clicks()) {
+                $shortUrl->updateClicks($realTimeClicks);
+            }
         }
-        return $dbUrl;
+        return $shortUrl;
     }
     public function findById(string $id): ?ShortUrl
     {
