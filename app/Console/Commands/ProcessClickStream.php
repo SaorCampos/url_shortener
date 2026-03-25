@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Stevebauman\Location\Facades\Location;
+use Illuminate\Support\Str;
 
 class ProcessClickStream extends Command
 {
@@ -110,6 +111,7 @@ class ProcessClickStream extends Command
             }
             if ($shortUrlId) {
                 $inserts[] = [
+                    'id' => (string)Str::ulid(),
                     'short_url_id' => $shortUrlId,
                     'ip' => $ip,
                     'user_agent' => $fields['user_agent'] ?? null,

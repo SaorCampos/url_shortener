@@ -19,6 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000
     restart: unless-stopped
     working_dir: /var/www/
     depends_on:
@@ -83,19 +84,22 @@ services:
     env_file:
       - .env
 
-  idpool:
-    container_name: urlshortener_idpool
+  flushclicks:
+    container_name: urlshortener_flushclicks
     build:
       context: .
       dockerfile: Dockerfile
-    command: php artisan shorturl:fill-id-pool
+    command: php artisan shorturl:flush-clicks
     restart: unless-stopped
     volumes:
       - .:/var/www
-    depends_on:
-      - redis
     networks:
       - urlshortener
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
 
 networks:
   urlshortener:

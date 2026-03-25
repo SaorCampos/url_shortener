@@ -3,16 +3,11 @@
 namespace App\Infrastructure\Ids;
 
 use App\Domain\Shared\Services\IdGenerator;
-use Illuminate\Support\Facades\Redis;
-
+use Illuminate\Support\Str;
 class PoolIdGenerator implements IdGenerator
 {
-    public function generate(): int
+    public function generate(): string
     {
-        $id = Redis::lpop('shorturl:id_pool');
-        if (!$id) {
-            throw new \RuntimeException('ID pool empty');
-        }
-        return (int) $id;
+        return (string) Str::ulid();
     }
 }
