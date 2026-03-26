@@ -16,7 +16,7 @@ class SyncBloomFilter extends Command
         $this->info('Iniciando sincronização...');
             ShortUrlModel::select('short_code')->chunk(1000, function ($urls) use ($bloomFilter) {
             foreach ($urls as $url) {
-                $bloomFilter->add($url->short_code);
+                $bloomFilter->add($url->getRawOriginal('short_code'));
             }
             $this->comment("Sincronizando lote de 1000...");
         });

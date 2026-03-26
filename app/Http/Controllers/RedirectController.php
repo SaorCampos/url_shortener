@@ -19,10 +19,12 @@ class RedirectController extends Controller
 
     public function __invoke(string $code)
     {
+        // 1. L1: HotCache (Octane RAM)
         if ($url = $this->hotCache->get($code)) {
             $this->trackClick($code);
             return redirect()->away($url);
         }
+        // 2. L2: Redis Cache
         [$url, $negative] = Redis::pipeline(function ($pipe) use ($code) {
             $pipe->get("shorturl:redirect:{$code}");
             $pipe->exists("shorturl:404:{$code}");
@@ -35,12 +37,13 @@ class RedirectController extends Controller
         if ($negative) {
             abort(404);
         }
-        if (!$this->bloomFilter->mightExist($code)) {
+        // 3. Bloom Filter with Fail-safe
+        $bloomKeyExists = Redis::exists('shorturl:bloom');
+        if ($bloomKeyExists && !$this->bloomFilter->mightExist($code)) {
             abort(404);
         }
-        $shortUrl = $this->queryBus->dispatch(
-            new FindShortUrlByCodeQuery($code)
-        );
+        // 4. L3: Database
+        $shortUrl = $this->queryBus->dispatch(new FindShortUrlByCodeQuery($code));
         if (!$shortUrl || $shortUrl->isExpired()) {
             Redis::setex("shorturl:404:{$code}", 3600, 1);
             abort(404);

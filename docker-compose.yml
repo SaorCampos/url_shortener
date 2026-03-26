@@ -58,15 +58,6 @@ services:
     networks:
       - urlshortener
 
-  redisinsight:
-    image: redislabs/redisinsight:latest
-    container_name: urlshortener_redisinsight
-    restart: unless-stopped
-    depends_on:
-      - redis
-    networks:
-      - urlshortener
-
   worker:
     container_name: urlshortener_worker
     build:
@@ -96,8 +87,29 @@ services:
     networks:
       - urlshortener
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    env_file:
+      - .env
+
+  warmup:
+    container_name: urlshortener_warmup
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: php artisan shorturl:sync-bloom
+    restart: no
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - urlshortener
     env_file:
       - .env
 
