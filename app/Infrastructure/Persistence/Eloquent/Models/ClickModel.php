@@ -13,11 +13,12 @@ class ClickModel extends Model
         'id',
         'short_url_id',
         'ip',
+        'country_code',
         'user_agent',
         'referer',
     ];
 
-    public function shortUrl()
+    public function shortUrls()
     {
         return $this->belongsTo(ShortUrlModel::class, 'short_url_id');
     }

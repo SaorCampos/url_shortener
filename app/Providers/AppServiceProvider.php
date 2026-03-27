@@ -2,15 +2,18 @@
 
 namespace App\Providers;
 
+use App\Domain\Analytics\Repositories\AnalyticsRepository;
 use App\Domain\Shared\Cache\CacheService;
 use App\Domain\Shared\Services\IdGenerator;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use App\Domain\ShortUrl\Services\Base62Encoder;
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
+use App\Infrastructure\Cache\CachedAnalyticsRepository;
 use App\Infrastructure\Cache\CachedShortUrlRepository;
 use App\Infrastructure\Cache\HotUrlCache;
 use App\Infrastructure\Cache\RedisService;
 use App\Infrastructure\Ids\PoolIdGenerator;
+use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentAnalyticsRepository;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
@@ -41,10 +44,10 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerRepositories(): void
     {
-        $this->app->bind(
-            ShortUrlRepository::class,
-            CachedShortUrlRepository::class
-        );
+        // $this->app->bind(
+        //     ShortUrlRepository::class,
+        //     CachedShortUrlRepository::class
+        // );
         $this->app->bind(
             ShortUrlRepository::class,
             function ($app) {
@@ -56,6 +59,16 @@ class AppServiceProvider extends ServiceProvider
         );
         $this->app->singleton(HotUrlCache::class, function () {
             return new HotUrlCache(1000);
+        });
+        // $this->app->bind(
+        //     AnalyticsRepository::class,
+        //     EloquentAnalyticsRepository::class
+        // );
+        $this->app->singleton(AnalyticsRepository::class, function ($app) {
+            return new CachedAnalyticsRepository(
+                $app->make(EloquentAnalyticsRepository::class),
+                $app->make(CacheService::class)
+            );
         });
     }
     private function registerServices(): void

@@ -114,6 +114,7 @@ class ProcessClickStream extends Command
                     'id' => (string)Str::ulid(),
                     'short_url_id' => $shortUrlId,
                     'ip' => $ip,
+                    'country_code' => $fields['country'] ?? null,
                     'user_agent' => $fields['user_agent'] ?? null,
                     'referer' => $fields['referer'] ?? null,
                     'created_at' => now(),

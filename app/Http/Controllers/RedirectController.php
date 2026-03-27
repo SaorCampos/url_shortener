@@ -113,6 +113,7 @@ class RedirectController extends Controller
             $pipe->xadd('shorturl:clicks', '*', [
                 'code' => $code,
                 'ip' => $ip,
+                'country' => $country,
                 'ts' => $now->timestamp,
                 'user_agent' => request()->userAgent(),
                 'referer' => request()->header('Referer'),
