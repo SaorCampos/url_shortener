@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Redis;
 
 class CachedShortUrlRepository implements ShortUrlRepository
 {
+    private const DEFAULT_TTL = 3600;
+
     public function __construct(
         private ShortUrlRepository $repository,
         private CacheService $cache
@@ -21,43 +23,48 @@ class CachedShortUrlRepository implements ShortUrlRepository
         $this->cache->forget($this->urlHashKey($saved->originalUrl()));
         return $saved;
     }
+
     public function findByCode(string $code): ?ShortUrl
     {
-        $key = $this->cacheKey($code);
-        $shortUrl = $this->cache->get($key);
-        if ($shortUrl === null) {
-            $shortUrl = $this->repository->findByCode($code);
-            if ($shortUrl) {
-                $this->cache->set($key, $shortUrl, 3600);
-            }
-        }
+        $shortUrl = $this->cache->remember(
+            $this->cacheKey($code),
+            fn() => $this->repository->findByCode($code),
+            self::DEFAULT_TTL
+        );
         if ($shortUrl instanceof ShortUrl) {
-            $realTimeClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
-            if ($realTimeClicks > $shortUrl->clicks()) {
-                $shortUrl->updateClicks($realTimeClicks);
-            }
+            $this->syncRealTimeClicks($shortUrl, $code);
         }
         return $shortUrl;
     }
-    public function findById(string $id): ?ShortUrl
-    {
-        return $this->repository->findById($id);
-    }
+
     public function findByOriginalUrl(string $url): ?ShortUrl
     {
-        $key = $this->urlHashKey($url);
-        $code = $this->cache->get($key);
-        if (!$code) {
-            $dbUrl = $this->repository->findByOriginalUrl($url);
-            if (!$dbUrl) {
-                return null;
-            }
-            $code = $dbUrl->shortCode();
-            $this->cache->set($key, $code, 3600);
-        }
-        return $this->findByCode($code);
+        $code = $this->cache->remember(
+            $this->urlHashKey($url),
+            function() use ($url) {
+                $dbUrl = $this->repository->findByOriginalUrl($url);
+                return $dbUrl ? $dbUrl->shortCode() : null;
+            },
+            self::DEFAULT_TTL
+        );
+        return $code ? $this->findByCode($code) : null;
+    }
+    public function findById(string $id): ?ShortUrl
+    {
+        return $this->cache->remember(
+            "shorturl:id:{$id}",
+            fn() => $this->repository->findById($id),
+            self::DEFAULT_TTL
+        );
     }
 
+    private function syncRealTimeClicks(ShortUrl $entity, string $code): void
+    {
+        $realTimeClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
+        if ($realTimeClicks > $entity->clicks()) {
+            $entity->updateClicks($realTimeClicks);
+        }
+    }
     private function cacheKey(string $code): string
     {
         return "shorturl:{$code}";

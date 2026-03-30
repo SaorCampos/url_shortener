@@ -9,5 +9,5 @@ interface AnalyticsRepository
     public function getCountryStats(string $urlId, int $days): array;
     public function getHourHeatmap(string $urlId): array;
     public function getGeoPoints(string $urlId): array;
-    public function getTrendingStats(int $minutes): array;
+    public function getTrendingStats(int $minutes, int $offsetMinutes = 0): array;
 }

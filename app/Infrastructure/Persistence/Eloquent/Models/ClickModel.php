@@ -9,6 +9,7 @@ class ClickModel extends Model
 {
     use HasUlids;
 
+    protected $table = 'clicks';
     protected $fillable = [
         'id',
         'short_url_id',
@@ -16,6 +17,8 @@ class ClickModel extends Model
         'country_code',
         'user_agent',
         'referer',
+        'lat',
+        'lng',
     ];
 
     public function shortUrls()

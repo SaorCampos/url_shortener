@@ -27,5 +27,4 @@ class ShortUrlModel extends Model
     protected $attributes = [
         'clicks' => 0,
     ];
-
 }

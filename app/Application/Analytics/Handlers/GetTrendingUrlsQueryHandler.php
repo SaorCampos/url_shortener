@@ -2,6 +2,7 @@
 
 namespace App\Application\Analytics\Handlers;
 
+use App\Application\Analytics\Queries\GetTrendingUrlsQuery;
 use App\Domain\Analytics\Repositories\AnalyticsRepository;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 
@@ -12,10 +13,10 @@ class GetTrendingUrlsQueryHandler
         private ShortUrlRepository $urlRepo
     ) {}
 
-    public function handle(): array
+    public function handle(GetTrendingUrlsQuery $query): array
     {
         $currentHour = $this->analyticsRepo->getTrendingStats(60);
-        $previousHour = $this->analyticsRepo->getTrendingStats(120);
+        $previousHour = $this->analyticsRepo->getTrendingStats(120, 60);
         $result = [];
         foreach ($currentHour as $urlId => $clicksNow) {
             if ($clicksNow < 3) continue;

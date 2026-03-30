@@ -7,6 +7,10 @@ use App\Domain\Shared\Cache\CacheService;
 
 class CachedAnalyticsRepository implements AnalyticsRepository
 {
+    private const TTL_SHORT = 15;
+    private const TTL_MEDIUM = 30;
+    private const TTL_LONG = 60;
+
     public function __construct(
         private AnalyticsRepository $repository,
         private CacheService $cache
@@ -17,7 +21,7 @@ class CachedAnalyticsRepository implements AnalyticsRepository
         return $this->cache->remember(
             "analytics:minutes:{$urlId}:{$minutes}",
             fn() => $this->repository->getMinuteStats($urlId, $minutes),
-            3600,
+            self::TTL_LONG,
         );
     }
     public function getTopUrls(int $limit): array
@@ -25,7 +29,7 @@ class CachedAnalyticsRepository implements AnalyticsRepository
         return $this->cache->remember(
             "analytics:top:{$limit}",
             fn() => $this->repository->getTopUrls($limit),
-            3600,
+            self::TTL_LONG,
         );
     }
     public function getCountryStats(string $urlId, int $days): array
@@ -33,7 +37,7 @@ class CachedAnalyticsRepository implements AnalyticsRepository
         return $this->cache->remember(
             "analytics:countries:{$urlId}:{$days}",
             fn() => $this->repository->getCountryStats($urlId, $days),
-            3600,
+            self::TTL_LONG,
         );
     }
     public function getHourHeatmap(string $urlId): array
@@ -41,7 +45,7 @@ class CachedAnalyticsRepository implements AnalyticsRepository
         return $this->cache->remember(
             "analytics:heatmap:{$urlId}",
             fn() => $this->repository->getHourHeatmap($urlId),
-            3600,
+            self::TTL_MEDIUM,
         );
     }
     public function getGeoPoints(string $urlId): array
@@ -49,15 +53,15 @@ class CachedAnalyticsRepository implements AnalyticsRepository
         return $this->cache->remember(
             "analytics:geopoints:{$urlId}",
             fn() => $this->repository->getGeoPoints($urlId),
-            3600,
+            self::TTL_SHORT,
         );
     }
-    public function getTrendingStats(int $minutes): array
+    public function getTrendingStats(int $minutes, int $offsetMinutes = 0): array
     {
         return $this->cache->remember(
-            "analytics:trending:{$minutes}",
-            fn() => $this->repository->getTrendingStats($minutes),
-            3600,
+            "analytics:trending:{$minutes}:{$offsetMinutes}",
+            fn() => $this->repository->getTrendingStats($minutes, $offsetMinutes),
+            self::TTL_LONG,
         );
     }
 }

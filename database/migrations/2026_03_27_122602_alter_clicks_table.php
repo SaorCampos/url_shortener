@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::table('clicks', function (Blueprint $table) {
             $table->string('country_code', 2)->nullable()->after('ip');
+            $table->float('lat', 10, 6)->nullable()->after('country_code');
+            $table->float('lng', 10, 6)->nullable()->after('lat');
         });
     }
 
@@ -23,6 +25,9 @@ return new class extends Migration
     {
         Schema::table('clicks', function (Blueprint $table) {
             $table->dropColumn('country_code');
+            $table->dropColumn('lat');
+            $table->dropColumn('lng');
         });
     }
 };
+
