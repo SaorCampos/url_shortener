@@ -44,10 +44,6 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerRepositories(): void
     {
-        // $this->app->bind(
-        //     ShortUrlRepository::class,
-        //     CachedShortUrlRepository::class
-        // );
         $this->app->bind(
             ShortUrlRepository::class,
             function ($app) {
@@ -60,10 +56,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(HotUrlCache::class, function () {
             return new HotUrlCache(1000);
         });
-        // $this->app->bind(
-        //     AnalyticsRepository::class,
-        //     EloquentAnalyticsRepository::class
-        // );
         $this->app->singleton(AnalyticsRepository::class, function ($app) {
             return new CachedAnalyticsRepository(
                 $app->make(EloquentAnalyticsRepository::class),

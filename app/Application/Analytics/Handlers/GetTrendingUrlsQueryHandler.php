@@ -38,7 +38,7 @@ class GetTrendingUrlsQueryHandler
     {
         if ($previous === 0) return $current > 0 ? '+100%' : '0%';
         $change = (($current - $previous) / $previous) * 100;
-        return ($change >= 0 ? '+' : '') . round($change, 1) . '%';
+        return ($change >= 0 ? '+' : '') . round($change, 2) . '%';
     }
     private function detectSpike(string $urlId, int $clicksNow): bool
     {
