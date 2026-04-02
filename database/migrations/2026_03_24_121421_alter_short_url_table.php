@@ -15,7 +15,7 @@ return new class extends Migration
             $table->dropForeign(['short_url_id']);
         });
         Schema::table('short_urls', function (Blueprint $table) {
-            $table->char('ulid_new', 26)->nullable();
+            $table->char('ulid_new', 26)->nullable()->before('original_url');
         });
         // Opcional: Popular os ULIDs para registros existentes
         Schema::table('short_urls', function (Blueprint $table) {

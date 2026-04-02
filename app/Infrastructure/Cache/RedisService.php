@@ -16,14 +16,12 @@ class RedisService implements CacheService
         }
         return $this->prefix . $key;
     }
-
     public function get(string $key): mixed
     {
         $value = Redis::get($this->key($key));
         return $value ? unserialize($value) : null;
     }
-
-    public function set(string $key, mixed $value, int $ttl = 3600): void
+    public function set(string $key, mixed $value, int $ttl): void
     {
         Redis::setex(
             $this->key($key),
@@ -31,8 +29,7 @@ class RedisService implements CacheService
             serialize($value)
         );
     }
-
-    public function remember(string $key, callable $callback, int $ttl = 3600): mixed
+    public function remember(string $key, callable $callback, int $ttl): mixed
     {
         $value = $this->get($key);
         if ($value !== null) {
