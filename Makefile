@@ -69,6 +69,9 @@ reset:
 	docker compose up -d --build
 	docker compose exec $(APP_CONTAINER) php artisan migrate:fresh --seed
 
+benchmark:
+	docker run --rm --network url_shortener_urlshortener -i grafana/k6 run - <benchmark.js
+
 help:
 	@echo ""
 	@echo "Available commands:"
@@ -89,4 +92,5 @@ help:
 	@echo ""
 	@echo " make test      - run tests"
 	@echo " make tinker    - open tinker"
+	@echo " make benchmark  - run benchmark"
 	@echo ""

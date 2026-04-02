@@ -8,5 +8,5 @@ Route::get('/', function () {
 });
 
 Route::controller(RedirectController::class)->group(function () {
-    Route::get('/{code}', '__invoke')->where('code', '[A-Za-z0-9]{6}')->middleware('throttle:100,1');
+    Route::get('/{code}', '__invoke')->where('code', '[A-Za-z0-9]{6}');
 });
