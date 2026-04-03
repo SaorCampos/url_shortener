@@ -8,6 +8,7 @@ use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use App\Domain\ShortUrl\Services\Base62Encoder;
 use App\Infrastructure\Cache\BloomFilterService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Redis;
 
 class CreateShortUrlCommandHandler
@@ -34,7 +35,7 @@ class CreateShortUrlCommandHandler
         $shortUrl = ShortUrl::create($id, $command->url, $code);
         try {
             $this->repository->save($shortUrl);
-        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+        } catch (UniqueConstraintViolationException $e) {
             return $this->repository->findByCode($code);
         }
         Redis::setex("shorturl:redirect:{$code}", 86400, $command->url);
