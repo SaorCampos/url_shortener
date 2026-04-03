@@ -53,7 +53,7 @@ O projeto está totalmente automatizado via **Makefile**. A única dependência 
 2.  **Instalação completa:**
     Este comando irá subir os containers, instalar dependências do Composer, gerar chaves e rodar as migrations.
     ```bash
-    make install
+    make setup
     ```
 
 3.  **Acessar a aplicação:**
