@@ -72,6 +72,9 @@ reset:
 benchmark:
 	docker run --rm --network url_shortener_urlshortener -i grafana/k6 run - <benchmark.js
 
+stress:
+	docker run --rm --network url_shortener_urlshortener -i grafana/k6 run - <stress_test.js
+
 help:
 	@echo ""
 	@echo "Available commands:"
@@ -93,4 +96,5 @@ help:
 	@echo " make test      - run tests"
 	@echo " make tinker    - open tinker"
 	@echo " make benchmark  - run benchmark"
+	@echo " make stress     - run stress test"
 	@echo ""

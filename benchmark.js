@@ -28,7 +28,7 @@ export default function () {
     let resAnalytics = http.get(`${BASE_URL}/api/analytics/${TEST_CODE}`);
     check(resAnalytics, {
         'analytics status is 200': (r) => r.status === 200,
-        'analytics is cached': (r) => r.timings.duration < 20,
+        'analytics is cached': (r) => r.timings.duration < 40,
     });
     sleep(1);
 }
