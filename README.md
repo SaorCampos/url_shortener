@@ -39,6 +39,7 @@ O projeto utiliza um **Makefile** para automatizar todo o setup via Docker.
 2. **Acessar:** `http://localhost:8011`
 
 > 📖 **Quer entender a engenharia por trás desses números?** > Confira o [Guia de Arquitetura e Decisões Técnicas](docs/architecture.md).
+
 > 📘 **Documentação OpenAPI**: O contrato completo da API pode ser visualizado no arquivo [openapi.yaml](docs/openapi.yaml). Você pode colar o conteúdo deste arquivo no [Swagger Editor](https://editor.swagger.io/) para testar a interface.
 
 ---
@@ -92,6 +93,7 @@ The project uses a **Makefile** to automate the entire setup via Docker.
 2. **Access:** `http://localhost:8011`
 
 > 📖 **Want to understand the engineering behind these numbers?** > Check out the [Architecture and Technical Decisions Guide](docs/architecture.md).
+
 > 📘 **OpenAPI Documentation**: The complete API contract can be viewed in the [openapi.yaml](docs/openapi.yaml) file. You can paste the content of this file into the [Swagger Editor](https://editor.swagger.io/) to test the interface.
 
 ---
