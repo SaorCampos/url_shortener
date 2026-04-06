@@ -1,59 +1,107 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🚀 URL Shortener - High Performance API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+![PHP Version](https://img.shields.io/badge/php-8.3-blue.svg)
+![Laravel Version](https://img.shields.io/badge/laravel-11-red.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Performance](https://img.shields.io/badge/status-1.1k_req/s-orange.svg)
 
-## About Laravel
+---
+# PT-BR
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Este é um encurtador de URLs de ultra-alta performance, construído com **Laravel 11** e **Octane (Swoole)**. O projeto foi desenhado para cenários de tráfego massivo, utilizando processamento assíncrono e arquitetura resiliente para garantir latência sub-5ms.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📌 Funcionalidades Core
+* **Redirecionamento Instantâneo:** Respostas `302` ultra-rápidas com cache em Redis.
+* **Analytics Assíncrono:** Coleta de métricas sem impactar o tempo de resposta do usuário.
+* **Arquitetura DDD:** Código limpo, testável e desacoplado de infraestrutura.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## ⚡ Performance Benchmarks (k6)
 
-## Learning Laravel
+### Load Test (100 VUs)
+Focado em estabilidade e experiência do usuário.
+* **p(95):** < 3.5ms
+* **Taxa de Sucesso:** 99.92%
+<p align="center"><img src="docs/BenchmarkResult.png" width="800"></p>
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Stress Test (500 VUs - Full Load)
+Focado em encontrar o limite de vazão da infraestrutura.
+* **Throughput:** 1.120 req/s
+* **Taxa de Sucesso:** 100% (Zero falhas sob estresse máximo)
+<p align="center"><img src="docs/StressTestResult.png" width="800"></p>
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🚀 Como Rodar
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+O projeto utiliza um **Makefile** para automatizar todo o setup via Docker.
 
-### Premium Partners
+1. **Instalação:** `make setup`
+2. **Acessar:** `http://localhost:8011`
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+> 📖 **Quer entender a engenharia por trás desses números?** > Confira o [Guia de Arquitetura e Decisões Técnicas](docs/architecture.md).
+> 📘 **Documentação OpenAPI**: O contrato completo da API pode ser visualizado no arquivo [openapi.yaml](docs/openapi.yaml). Você pode colar o conteúdo deste arquivo no [Swagger Editor](https://editor.swagger.io/) para testar a interface.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🔮 Roadmap
+* [ ] **Custom Aliases:** Permitir que o usuário escolha o nome da URL encurtada.
+* [ ] **Expiration Dates:** Definir data e hora para o link expirar automaticamente.
+* [ ] **Dashboard de Analytics:** Interface gráfica para visualização de cliques, países e dispositivos.
+* [ ] **Rate Limit Dinâmico:** Implementar limites por API Key ou IP para evitar abuso.
+* [ ] **GRPC Integration:** Para comunicação ainda mais rápida entre microserviços.
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# EN-US
 
-## Security Vulnerabilities
+This is a high-performance URL shortener built with **Laravel 11** and **Octane (Swoole)**. The project is designed for massive traffic scenarios, using asynchronous processing and a resilient architecture to ensure sub-5ms latency.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 📌 Core Features
 
-## License
+* **Instant Redirection:** Ultra-fast `302` responses with Redis caching.
+* **Asynchronous Analytics:** Collecting metrics without impacting user response times.
+* **DDD Architecture:** Clean, testable code decoupled from infrastructure.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## ⚡ Performance Benchmarks (k6)
+
+### Load Test (100 VUs)
+
+Focused on stability and user experience.
+
+* **p(95):** < 3.5ms
+* **Success Rate:** 99.92%
+
+<p align="center"><img src="docs/BenchmarkResult.png" width="800"></p>
+
+### Stress Test (500 VUs - Full Load)
+
+Focused on finding the throughput limits of the infrastructure.
+
+* **Throughput:** 1,120 req/s
+* **Success Rate:** 100% (Zero failures under maximum stress)
+
+<p align="center"><img src="docs/StressTestResult.png" width="800"></p>
+
+---
+
+## 🚀 How to Run
+
+The project uses a **Makefile** to automate the entire setup via Docker.
+
+1. **Installation:** `make setup`
+2. **Access:** `http://localhost:8011`
+
+> 📖 **Want to understand the engineering behind these numbers?** > Check out the [Architecture and Technical Decisions Guide](docs/architecture.md).
+> 📘 **OpenAPI Documentation**: The complete API contract can be viewed in the [openapi.yaml](docs/openapi.yaml) file. You can paste the content of this file into the [Swagger Editor](https://editor.swagger.io/) to test the interface.
+
+---
+
+## 🔮 Roadmap
+
+* [ ] **Custom Aliases:** Allow users to choose the name of the shortened URL.
+* [ ] **Expiration Dates:** Set date and time for the link to automatically expire.
+* [ ] **Analytics Dashboard:** Graphical interface for viewing clicks, countries, and devices.
+* [ ] **Dynamic Rate Limiting:** Implement limits by API Key or IP to prevent abuse.
+* [ ] **GRPC Integration:** For even faster communication between microservices.
+
+---

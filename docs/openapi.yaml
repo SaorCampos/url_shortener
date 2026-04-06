@@ -1,0 +1,205 @@
+openapi: 3.0.0
+info:
+  title: URL Shortener API
+  description: High-performance API built with Laravel Octane/Swoole and DDD architecture.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8011
+    description: Local Server
+
+paths:
+  /api/short-urls:
+    post:
+      summary: Create a shortened URL
+      tags:
+        - Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: "https://google.com"
+      responses:
+        '201':
+          description: URL shortened successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortUrl'
+
+  /api/short-urls/{code}:
+    get:
+      summary: Get shortened URL details
+      tags:
+        - Management
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "mZmevP"
+      responses:
+        '200':
+          description: Short URL details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortUrl'
+
+  /api/analytics/{code}:
+    get:
+      summary: Detailed analytics by code
+      tags:
+        - Analytics
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Time-series click data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: string }
+                  labels: { type: array, items: { type: string }, description: "Time intervals (HH:MM)" }
+                  values: { type: array, items: { type: integer }, description: "Click count per interval" }
+                  total: { type: integer }
+
+  /api/analytics-top-day:
+    get:
+      summary: Daily top performing URLs
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: List of most accessed URLs today
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TopAnalytics'
+
+  /api/analytics-top-hour:
+    get:
+      summary: Hourly top URLs and trends
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: List with performance trends and virality flag
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    code: { type: string }
+                    clicks: { type: integer }
+                    trend: { type: string, example: "+15.5%" }
+                    viral: { type: boolean, description: "True if a sudden traffic spike is detected" }
+                      description: "Indicates if the URL is experiencing a viral spike in traffic"
+
+  /api/analytics-heatmap/{code}:
+    get:
+      summary: Hourly access heatmap
+      tags:
+        - Analytics
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Click distribution by hour of the day
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                example: { "12": 272253, "14": 6134 }
+
+  /api/analytics-countries/{code}:
+    get:
+      summary: Click distribution by country
+      tags:
+        - Analytics
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of countries and click counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    country: { type: string, example: "BR" }
+                    clicks: { type: integer }
+
+  /api/analytics-geo/{code}:
+    get:
+      summary: Geographic coordinates for heatmaps
+      tags:
+        - Analytics
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Latitude, Longitude and access intensity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    lat: { type: number, format: float }
+                    lng: { type: number, format: float }
+                    intensity: { type: integer }
+
+components:
+  schemas:
+    ShortUrl:
+      type: object
+      properties:
+        id: { type: string, example: "01KNHBAP..." }
+        url: { type: string, example: "https://google.com" }
+        code: { type: string, example: "mZmevP" }
+        short_url: { type: string, example: "http://localhost:8011/mZmevP" }
+        clicks: { type: integer, example: 0 }
+        expires_at: { type: string, format: "date-time", example: "2026-04-13 12:12:25" }
+
+    TopAnalytics:
+      type: object
+      properties:
+        code: { type: string }
+        clicks: { type: integer }
