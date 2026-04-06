@@ -14,7 +14,7 @@ export const options = {
     },
 };
 
-const TEST_CODE = 'mZmevP';
+const TEST_CODE = 'mZmevP'; // Replace with your actual test code, ensure it exists in the system before running the test
 const BASE_URL = 'http://urlshortener_nginx';
 
 export default function () {
@@ -22,10 +22,10 @@ export default function () {
     check(resRedirect, {
         'status is 302': (r) => r.status === 302,
     });
-    sleep(0.1);
+    // sleep(0.1);
     let resAnalytics = http.get(`${BASE_URL}/api/analytics/${TEST_CODE}`);
     check(resAnalytics, {
         'analytics is 200': (r) => r.status === 200,
     });
-    sleep(1);
+    // sleep(1);
 }
