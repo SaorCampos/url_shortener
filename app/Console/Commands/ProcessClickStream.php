@@ -62,7 +62,7 @@ class ProcessClickStream extends Command
         }
     }
 
-    private function processEvents(array $events): void
+    public function processEvents(array $events): void
     {
         $ids = [];
         $inserts = [];
@@ -112,7 +112,6 @@ class ProcessClickStream extends Command
     private function getLocation(string $ip): array
     {
         if (isset($this->geoCache[$ip])) return $this->geoCache[$ip];
-
         try {
             $pos = Location::get($ip);
             $data = [

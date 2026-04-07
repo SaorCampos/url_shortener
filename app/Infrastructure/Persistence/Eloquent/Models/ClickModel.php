@@ -3,11 +3,12 @@
 namespace App\Infrastructure\Persistence\Eloquent\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ClickModel extends Model
 {
-    use HasUlids;
+    use HasUlids, HasFactory;
 
     protected $table = 'clicks';
     protected $fillable = [

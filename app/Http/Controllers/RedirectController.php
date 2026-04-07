@@ -24,28 +24,44 @@ class RedirectController extends Controller
             return redirect()->away($url);
         }
         // 2. L2: Redis Cache
-        [$url, $negative] = Redis::pipeline(function ($pipe) use ($code) {
-            $pipe->get("shorturl:redirect:{$code}");
-            $pipe->exists("shorturl:404:{$code}");
-        });
-        if ($url) {
-            $this->hotCache->put($code, $url);
-            $this->trackClick($code);
-            return redirect()->away($url);
+        try {
+            $results = Redis::pipeline(function ($pipe) use ($code) {
+                $pipe->get("shorturl:redirect:{$code}");
+                $pipe->exists("shorturl:404:{$code}");
+            });
+
+            if ($results) {
+                [$url, $negative] = $results;
+                if ($url) {
+                    $this->hotCache->put($code, $url);
+                    $this->trackClick($code);
+                    return redirect()->away($url);
+                }
+                if ($negative) abort(404);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
-        if ($negative) abort(404);
         // 3. Bloom Filter
-        if (Redis::exists('shorturl:bloom') && !$this->bloomFilter->mightExist($code)) {
-            abort(404);
+        try {
+            if (Redis::exists('shorturl:bloom') && !$this->bloomFilter->mightExist($code)) {
+                abort(404);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
         // 4. L3: Database
         $shortUrl = $this->queryBus->dispatch(new FindShortUrlByCodeQuery($code));
         if (!$shortUrl || $shortUrl->isExpired()) {
-            Redis::setex("shorturl:404:{$code}", 3600, 1);
+            try {
+                Redis::setex("shorturl:404:{$code}", 3600, 1);
+            } catch (\Throwable) {}
             abort(404);
         }
         $url = $shortUrl->originalUrl();
-        Redis::setex("shorturl:redirect:{$code}", 86400, $url);
+        try {
+            Redis::setex("shorturl:redirect:{$code}", 86400, $url);
+        } catch (\Throwable $e) {}
         $this->hotCache->put($code, $url);
         $this->trackClick($code);
         return redirect()->away($url);
@@ -55,34 +71,40 @@ class RedirectController extends Controller
     {
         $now = now();
         $ip = request()->ip();
-        if (app()->environment('local') && $this->isPrivateIp($ip)) {
-            $ipsFake = [
-                '177.92.7.1',
-                '8.8.8.8',
-                '2.20.141.0',
-                '202.160.128.0',
-                '105.107.107.107',
-                '186.192.100.100',
-                '189.10.10.10',
-                '177.104.123.123',
-                '103.103.103.103',
-                '179.123.123.123',
-            ];
-            $ip = $ipsFake[array_rand($ipsFake)];
+        if (app()->runningUnitTests() || app()->environment('local')) {
+            if ($this->isPrivateIp($ip)) {
+                $ipsFake = [
+                    '177.92.7.1',
+                    '8.8.8.8',
+                    '2.20.141.0',
+                    '202.160.128.0',
+                    '105.107.107.107',
+                    '186.192.100.100',
+                    '189.10.10.10',
+                    '177.104.123.123',
+                    '103.103.103.103',
+                    '179.123.123.123',
+                ];
+                $ip = $ipsFake[array_rand($ipsFake)];
+            }
         }
-        Redis::pipeline(function ($pipe) use ($code, $now, $ip) {
-            $pipe->incr("shorturl:clicks:total:{$code}");
-            $pipe->incr("shorturl:clicks:minute:{$code}:" . $now->format('YmdHi'));
-            $pipe->expire("shorturl:clicks:minute:{$code}:" . $now->format('YmdHi'), 86400);
-            $pipe->zincrby("shorturl:top", 1, $code);
-            $pipe->xadd('shorturl:clicks', '*', [
-                'code' => $code,
-                'ip' => $ip,
-                'ua' => request()->userAgent(),
-                'ref' => request()->header('Referer'),
-                'ts' => $now->timestamp,
-            ]);
-        });
+        try {
+            Redis::pipeline(function ($pipe) use ($code, $now, $ip) {
+                $pipe->incr("shorturl:clicks:total:{$code}");
+                $pipe->incr("shorturl:clicks:minute:{$code}:" . $now->format('YmdHi'));
+                $pipe->expire("shorturl:clicks:minute:{$code}:" . $now->format('YmdHi'), 86400);
+                $pipe->zincrby("shorturl:top", 1, $code);
+                $pipe->xadd('shorturl:clicks', '*', [
+                    'code' => $code,
+                    'ip' => $ip,
+                    'ua' => request()->userAgent(),
+                    'ref' => request()->header('Referer'),
+                    'ts' => $now->timestamp,
+                ]);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
     private function isPrivateIp(string $ip): bool
     {

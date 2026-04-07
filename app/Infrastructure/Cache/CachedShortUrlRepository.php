@@ -41,7 +41,7 @@ class CachedShortUrlRepository implements ShortUrlRepository
     {
         $code = $this->cache->remember(
             $this->urlHashKey($url),
-            function() use ($url) {
+            function () use ($url) {
                 $dbUrl = $this->repository->findByOriginalUrl($url);
                 return $dbUrl ? $dbUrl->shortCode() : null;
             },
@@ -60,9 +60,13 @@ class CachedShortUrlRepository implements ShortUrlRepository
 
     private function syncRealTimeClicks(ShortUrl $entity, string $code): void
     {
-        $realTimeClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
-        if ($realTimeClicks > $entity->clicks()) {
-            $entity->updateClicks($realTimeClicks);
+        try {
+            $realTimeClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
+            if ($realTimeClicks > $entity->clicks()) {
+                $entity->updateClicks($realTimeClicks);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
     }
     private function cacheKey(string $code): string

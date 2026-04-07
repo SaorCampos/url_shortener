@@ -26,12 +26,14 @@ class EloquentShortUrlRepository implements ShortUrlRepository
     public function findByCode(string $code): ?ShortUrl
     {
         $model = ShortUrlModel::where('short_code', $code)->first();
-        if (!$model) {
-            return null;
-        }
-        $redisClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
-        if ($redisClicks > $model->clicks) {
-            $model->clicks = $redisClicks;
+        if (!$model) return null;
+        try {
+            $redisClicks = (int) Redis::get("shorturl:clicks:total:{$code}");
+            if ($redisClicks > $model->clicks) {
+                $model->clicks = $redisClicks;
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
         return ShortUrlMapper::toEntity($model);
     }
