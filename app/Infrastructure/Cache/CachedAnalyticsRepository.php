@@ -7,6 +7,7 @@ use App\Domain\Shared\Cache\CacheService;
 
 class CachedAnalyticsRepository implements AnalyticsRepository
 {
+    private const TTL_VERY_SHORT = 5;
     private const TTL_SHORT = 15;
     private const TTL_MEDIUM = 30;
     private const TTL_LONG = 60;
@@ -21,7 +22,7 @@ class CachedAnalyticsRepository implements AnalyticsRepository
         return $this->cache->remember(
             "analytics:minutes:{$urlId}:{$minutes}",
             fn() => $this->repository->getMinuteStats($urlId, $minutes),
-            self::TTL_LONG,
+            self::TTL_VERY_SHORT,
         );
     }
     public function getTopUrls(int $limit): array

@@ -4,6 +4,7 @@ namespace App\Infrastructure\Persistence\Eloquent\Models;
 
 use App\Infrastructure\Persistence\Eloquent\Casts\ExpirationDateCast;
 use App\Infrastructure\Persistence\Eloquent\Casts\ShortCodeCast;
+use Database\Factories\ShortUrlFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -28,4 +29,9 @@ class ShortUrlModel extends Model
     protected $attributes = [
         'clicks' => 0,
     ];
+
+    protected static function newFactory()
+    {
+        return ShortUrlFactory::new();
+    }
 }

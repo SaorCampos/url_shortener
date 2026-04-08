@@ -54,7 +54,7 @@ class CreateShortUrlTest extends TestCase
         $secondResponse = $this->postJson('api/short-urls', ['url' => $url]);
         $secondCode = $secondResponse->json('short_code');
         // Assert
-        $this->assertEquals($firstCode, $secondCode, 'Deveria retornar o mesmo código para a mesma URL');
+        $this->assertEquals($firstCode, $secondCode);
         $this->assertCount(1, ShortUrlModel::all());
     }
     #[Test]

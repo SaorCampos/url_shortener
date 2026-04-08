@@ -37,9 +37,6 @@ class ShortUrlController extends Controller
         $shortUrl = $this->queryBus->dispatch(
             new FindShortUrlByCodeQuery($code)
         );
-        if (!$shortUrl) {
-            return response()->json(['message' => 'Short URL not found'], 404);
-        }
         return response()->json([
             'id' => $shortUrl->id(),
             'url' => $shortUrl->originalUrl(),
