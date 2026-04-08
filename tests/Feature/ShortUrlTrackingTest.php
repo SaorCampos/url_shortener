@@ -136,7 +136,7 @@ class ShortUrlTrackingTest extends TestCase
         config(['cache.default' => 'array']);
         $code = 'redoff';
         ShortUrlModel::create([
-            'id' => (string)\Illuminate\Support\Str::ulid(),
+            'id' => (string)Str::ulid(),
             'original_url' => 'https://resilient.com',
             'short_code' => $code,
             'clicks' => 0
