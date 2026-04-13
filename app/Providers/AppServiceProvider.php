@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\ProcessClickStream;
 use App\Domain\Analytics\Repositories\AnalyticsRepository;
 use App\Domain\Shared\Cache\CacheService;
 use App\Domain\Shared\Services\IdGenerator;
@@ -15,6 +16,7 @@ use App\Infrastructure\Cache\RedisService;
 use App\Infrastructure\Ids\PoolIdGenerator;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentAnalyticsRepository;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
+use Illuminate\Console\Application as Artisan;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
@@ -40,6 +42,9 @@ class AppServiceProvider extends ServiceProvider
                 Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST
             );
         }
+        Artisan::starting(function ($artisan) {
+            $artisan->resolve(ProcessClickStream::class);
+        });
     }
 
     private function registerRepositories(): void

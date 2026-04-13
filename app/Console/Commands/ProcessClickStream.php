@@ -11,7 +11,7 @@ use Stevebauman\Location\Facades\Location;
 
 class ProcessClickStream extends Command
 {
-    protected $signature = 'shorturl:process-clicks';
+    protected $signature = 'shorturl:process-clicks {--once}';
     private const STREAM = 'shorturl:clicks';
     private const GROUP = 'click-workers';
 
@@ -28,6 +28,7 @@ class ProcessClickStream extends Command
     {
         $this->info("Worker iniciado: {$this->consumer}");
         $this->ensureStreamAndGroup();
+        $once = $this->option('once');
         while (true) {
             try {
                 $events = Redis::xreadgroup(
@@ -55,6 +56,7 @@ class ProcessClickStream extends Command
                     continue;
                 }
                 $this->processEvents($events[self::STREAM]);
+                if ($once) break;
             } catch (\Throwable $e) {
                 Log::error("Worker crashou: " . $e->getMessage());
                 sleep(1);
