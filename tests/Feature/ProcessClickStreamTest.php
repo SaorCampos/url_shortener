@@ -19,12 +19,12 @@ class ProcessClickStreamTest extends TestCase
     {
         parent::setUp();
         Redis::flushall();
+        $position = new Position();
+        $position->countryCode = 'BR';
+        $position->latitude = -3.73;
+        $position->longitude = -38.52;
         Location::shouldReceive('get')
-            ->andReturn((object)[
-                'countryCode' => 'BR',
-                'latitude' => -3.73,
-                'longitude' => -38.52
-            ]);
+            ->andReturn($position);
     }
 
     public function test_it_processes_clicks_from_stream_to_database()
@@ -33,19 +33,10 @@ class ProcessClickStreamTest extends TestCase
             'short_code' => 'TEST12',
             'clicks' => 0
         ]);
-
-        // Criamos a instância real da classe que o pacote usa
         $position = new Position();
         $position->countryCode = 'BR';
         $position->latitude = -3.73;
         $position->longitude = -38.52;
-
-        // Mockamos a Facade para retornar essa instância específica
-        Location::shouldReceive('get')
-            ->once()
-            ->with('200.147.67.142')
-            ->andReturn($position);
-
         Redis::xadd(self::STREAM, '*', [
             'code' => 'TEST12',
             'ip' => '200.147.67.142',
@@ -53,10 +44,7 @@ class ProcessClickStreamTest extends TestCase
             'ua' => 'Mozilla/5.0',
             'ref' => 'https://google.com'
         ]);
-
-        // Forçamos o Laravel a resolver o comando do zero
-        $this->artisan('shorturl:abc-teste', ['--once' => true]);
-
+        $this->artisan('shorturl:process-click', ['--once' => true]);
         $this->assertDatabaseHas('clicks', [
             'short_url_id' => $url->id,
             'ip'           => '200.147.67.142',
@@ -80,7 +68,7 @@ class ProcessClickStreamTest extends TestCase
                 'ts' => now()->timestamp
             ]);
         }
-        $this->artisan('shorturl:abc-teste', ['--once' => true])
+        $this->artisan('shorturl:process-click', ['--once' => true])
             ->assertExitCode(0);
         $response = $this->getJson("/api/analytics-top-hour");
         $response->assertStatus(200)

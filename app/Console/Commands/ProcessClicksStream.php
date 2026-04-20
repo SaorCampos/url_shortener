@@ -123,6 +123,7 @@ class ProcessClicksStream extends Command
                 'lng' => $pos ? $pos->longitude : null,
             ];
         } catch (\Throwable $e) {
+            Log::warning("Erro ao geolocalizar IP {$ip}: " . $e->getMessage());
             $data = ['country' => null, 'lat' => null, 'lng' => null];
         }
         $this->geoCache[$ip] = $data;
