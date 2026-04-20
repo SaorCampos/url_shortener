@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=8 --task-workers=18
+    command: php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=8 --task-workers=16
     restart: unless-stopped
     working_dir: /var/www/
     depends_on:
@@ -63,7 +63,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: php artisan shorturl:process-clicks
+    command: php artisan shorturl:process-click
     restart: unless-stopped
     volumes:
       - .:/var/www

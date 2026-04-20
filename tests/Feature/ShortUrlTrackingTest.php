@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Console\Commands\ProcessClickStream;
+use App\Console\Commands\ProcessClicksStream;
 use App\Infrastructure\Cache\BloomFilterService;
 use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,7 +47,7 @@ class ShortUrlTrackingTest extends TestCase
         // Act
         $this->get("/{$code}")->assertRedirect('https://google.com');
         $streamEntries = Redis::xrange('shorturl:clicks', '-', '+');
-        app(ProcessClickStream::class)->processEvents($streamEntries);
+        app(ProcessClicksStream::class)->processEvents($streamEntries);
         $firstEvent = current($streamEntries);
         $eventDate = date('Ymd', $firstEvent['ts']);
         // Assert
@@ -74,7 +74,7 @@ class ShortUrlTrackingTest extends TestCase
             ]
         ];
         // Act
-        app(ProcessClickStream::class)->processEvents($event);
+        app(ProcessClicksStream::class)->processEvents($event);
         // Assert
         $this->assertDatabaseHas('short_urls', [
             'short_code' => $code,
@@ -166,7 +166,7 @@ class ShortUrlTrackingTest extends TestCase
             ]
         ];
         // Act
-        app(ProcessClickStream::class)->processEvents($event);
+        app(ProcessClicksStream::class)->processEvents($event);
 
         // Assert
         $today = now()->format('Ymd');

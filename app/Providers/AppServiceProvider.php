@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Console\Commands\ProcessClickStream;
+use App\Console\Commands\ProcessClicksStream;
 use App\Domain\Analytics\Repositories\AnalyticsRepository;
 use App\Domain\Shared\Cache\CacheService;
 use App\Domain\Shared\Services\IdGenerator;
@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
             );
         }
         Artisan::starting(function ($artisan) {
-            $artisan->resolve(ProcessClickStream::class);
+            $artisan->resolve(ProcessClicksStream::class);
         });
     }
 

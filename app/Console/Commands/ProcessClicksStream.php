@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Stevebauman\Location\Facades\Location;
 
-class ProcessClickStream extends Command
+class ProcessClicksStream extends Command
 {
-    protected $signature = 'shorturl:process-clicks {--once}';
+    protected $signature = 'shorturl:process-click {--once}';
+    protected $description = 'Async clicks processor';
     private const STREAM = 'shorturl:clicks';
     private const GROUP = 'click-workers';
 

@@ -1,6 +1,6 @@
 <?php
 
-use App\Console\Commands\ProcessClickStream;
+use App\Console\Commands\ProcessClicksStream;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
@@ -9,5 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('shorturl:process-clicks', function () {
-    $this->call(ProcessClickStream::class);
+    $this->call(ProcessClicksStream::class);
 });

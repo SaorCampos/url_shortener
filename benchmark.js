@@ -13,7 +13,7 @@ export const options = {
 };
 
 
-const TEST_CODE = 'mZmevP'; // Replace with your actual test code, ensure it exists in the system before running the test
+const TEST_CODE = '1Frbb7'; // Replace with your actual test code, ensure it exists in the system before running the test
 const BASE_URL = 'http://urlshortener_nginx';
 
 export default function () {
