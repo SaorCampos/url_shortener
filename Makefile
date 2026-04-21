@@ -2,6 +2,7 @@ APP_CONTAINER=app
 
 up:
 	docker compose up -d --build
+	docker exec -it urlshortener_app php artisan shorturl:sync-bloom
 
 down:
 	docker compose down
@@ -64,6 +65,8 @@ setup:
 	docker compose exec $(APP_CONTAINER) php artisan config:clear
 	docker compose exec $(APP_CONTAINER) php artisan cache:clear
 	docker compose exec $(APP_CONTAINER) php artisan octane:install --server=swoole
+	docker compose exec $(APP_CONTAINER) php artisan shorturl:sync-bloom
+
 reset:
 	docker compose down -v
 	docker compose up -d --build
