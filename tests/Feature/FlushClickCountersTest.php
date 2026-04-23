@@ -16,6 +16,7 @@ class FlushClickCountersTest extends TestCase
     public function test_it_removes_old_keys_and_keeps_recent_ones()
     {
         // Arrange
+        $this->travelTo(now()->startOfDay()->addHours(10));
         $oldDate = now()->subDays(10)->format('YmdHi');
         $oldGeoDate = now()->subDays(10)->format('Ymd');
         $oldKeys = [
@@ -37,14 +38,14 @@ class FlushClickCountersTest extends TestCase
         }
         // Act
         $this->artisan('shorturl:flush-clicks', ['--days' => 7])
-             ->expectsOutput('Processo de limpeza finalizado.') // Ajuste conforme seu log
+             ->expectsOutput('Processo de limpeza finalizado.')
              ->assertExitCode(0);
         // Assert
-        foreach ($oldKeys as $key) {
-            $this->assertEquals(0, Redis::exists($key), "A chave antiga {$key} deveria ter sido removida.");
-        }
         foreach ($recentKeys as $key) {
             $this->assertEquals(1, Redis::exists($key), "A chave recente {$key} deveria ter sido mantida.");
+        }
+        foreach ($oldKeys as $key) {
+            $this->assertEquals(0, Redis::exists($key), "A chave antiga {$key} deveria ter sido removida.");
         }
     }
 }
