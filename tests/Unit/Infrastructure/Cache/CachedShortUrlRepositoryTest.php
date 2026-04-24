@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Infrastructure\Cache;
+namespace Tests\Unit\Infrastructure\Cache;
 
 use App\Domain\Shared\Cache\CacheService;
 use App\Domain\ShortUrl\Entities\ShortUrl;

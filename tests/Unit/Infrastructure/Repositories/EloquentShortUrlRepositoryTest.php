@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Infrastructure\Repositories;
+namespace Tests\Unit\Infrastructure\Repositories;
 
 use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\ShortUrl\ValueObjects\ShortCode;
