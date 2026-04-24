@@ -44,6 +44,7 @@ class ShortUrlTrackingTest extends TestCase
             'clicks' => 0,
             'expires_at' => now()->addDays(7)
         ]);
+        app(BloomFilterService::class)->add("code:{$code}");
         // Act
         $this->get("/{$code}")->assertRedirect('https://google.com');
         $streamEntries = Redis::xrange('shorturl:clicks', '-', '+');
@@ -88,15 +89,11 @@ class ShortUrlTrackingTest extends TestCase
     #[Test]
     public function it_returns_404_if_code_is_not_in_bloom_filter()
     {
-        // Arrange
         $code = 'notino';
-        Redis::set('shorturl:bloom', 1);
-        $this->mock(BloomFilterService::class, function ($mock) use ($code) {
-            $mock->shouldReceive('mightExist')->with($code)->andReturn(false);
-        });
-        // Act
+        $mock = Mockery::mock(BloomFilterService::class);
+        $mock->shouldReceive('mightExist')->with("code:{$code}")->andReturn(false);
+        $this->app->instance(BloomFilterService::class, $mock);
         $response = $this->get("/{$code}");
-        // Assert
         $response->assertStatus(404);
     }
     #[Test]
@@ -122,6 +119,7 @@ class ShortUrlTrackingTest extends TestCase
             'clicks' => 0,
             'expires_at' => now()->subDay()
         ]);
+        app(BloomFilterService::class)->add("code:{$code}");
         // Act
         $response = $this->get("/{$code}");
         // Assert

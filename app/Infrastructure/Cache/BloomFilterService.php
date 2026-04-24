@@ -18,10 +18,15 @@ class BloomFilterService
 
     public function mightExist(string $value): bool
     {
-        foreach ($this->getIndices($value) as $index) {
-            if (!Redis::getbit(self::KEY, $index)) {
-                return false;
+        try {
+            foreach ($this->getIndices($value) as $index) {
+                if (!Redis::getbit(self::KEY, $index)) {
+                    return false;
+                }
             }
+        } catch (\Throwable $e) {
+            report($e);
+            return true;
         }
         return true;
     }
