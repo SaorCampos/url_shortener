@@ -22,15 +22,15 @@ class CreateShortUrlCommandHandler
 
     public function handle(CreateShortUrlCommand $command): ShortUrl
     {
-        $existing = $this->repository->findByOriginalUrl($command->url);
-        if ($existing) {
-            return $existing;
+        if ($this->bloomFilter->mightExist("url:{$command->url}")) {
+            $existing = $this->repository->findByOriginalUrl($command->url);
+            if ($existing) return $existing;
         }
         $id = $this->idGenerator->generate();
         $code = $this->encoder->generate($command->url);
-        $existingByCode = $this->repository->findByCode($code);
-        if ($existingByCode) {
-            return $existingByCode;
+        if ($this->bloomFilter->mightExist("code:{$code}")) {
+            $existingByCode = $this->repository->findByCode($code);
+            if ($existingByCode) return $existingByCode;
         }
         $shortUrl = ShortUrl::create($id, $command->url, $code);
         try {
@@ -39,7 +39,8 @@ class CreateShortUrlCommandHandler
             return $this->repository->findByCode($code);
         }
         Redis::setex("shorturl:redirect:{$code}", 86400, $command->url);
-        $this->bloomFilter->add($code);
+        $this->bloomFilter->add("url:{$command->url}");
+        $this->bloomFilter->add("code:{$code}");
         return $shortUrl;
     }
 }
