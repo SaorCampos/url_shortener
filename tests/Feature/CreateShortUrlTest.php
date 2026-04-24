@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Infrastructure\Cache\BloomFilterService;
 use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Redis;
@@ -28,10 +29,12 @@ class CreateShortUrlTest extends TestCase
         // Assert
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'id', 'url', 'short_code', 'short_url', 'clicks', 'expires_at'
-            ])
-            ->assertJson([
-                'url' => 'https://google.com'
+                'id',
+                'url',
+                'short_code',
+                'short_url',
+                'clicks',
+                'expires_at'
             ]);
         $code = $response->json('short_code');
         $this->assertDatabaseHas('short_urls', [
@@ -39,8 +42,15 @@ class CreateShortUrlTest extends TestCase
             'short_code' => $code
         ]);
         $this->assertEquals('https://google.com', Redis::get("shorturl:redirect:{$code}"));
-        $index = abs(crc32($code)) % 1000000;
-        $this->assertEquals(1, Redis::getbit('shorturl:bloom', $index));
+        $bloomFilter = app(BloomFilterService::class);
+        $this->assertTrue(
+            $bloomFilter->mightExist("code:{$code}"),
+            "O código deveria estar marcado no Bloom Filter"
+        );
+        $this->assertTrue(
+            $bloomFilter->mightExist("url:https://google.com"),
+            "A URL original deveria estar marcada no Bloom Filter"
+        );
     }
 
     #[Test]
