@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redis;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (UrlNotFoundException $e, Request $request) {
             // Lógica de "Negative Cache" para evitar brute force em URLs que deram 404
             $code = str_replace(['URL \'', '\' not found.'], '', $e->getMessage());
-            Illuminate\Support\Facades\Redis::setex("shorturl:404:{$code}", 3600, 1);
+            Redis::setex("shorturl:404:{$code}", 3600, 1);
 
             if ($request->is('api/*')) {
                 return response()->json([

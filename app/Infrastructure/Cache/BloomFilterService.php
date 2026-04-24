@@ -11,8 +11,12 @@ class BloomFilterService
 
     public function add(string $value): void
     {
-        foreach ($this->getIndices($value) as $index) {
-            Redis::setbit(self::KEY, $index, 1);
+        try {
+            foreach ($this->getIndices($value) as $index) {
+                Redis::setbit(self::KEY, $index, 1);
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
     }
 
@@ -24,11 +28,11 @@ class BloomFilterService
                     return false;
                 }
             }
+            return true;
         } catch (\Throwable $e) {
             report($e);
             return true;
         }
-        return true;
     }
 
     private function getIndices(string $value): array

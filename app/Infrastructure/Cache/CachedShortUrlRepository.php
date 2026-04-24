@@ -29,34 +29,42 @@ class CachedShortUrlRepository implements ShortUrlRepository
 
     public function findByCode(string $code): ?ShortUrl
     {
-        $cachedUrl = $this->hotCache->get($code);
-        if ($cachedUrl) {
-            return ShortUrl::restore(new ShortUrlData(
-                id: 'from-l1',
-                originalUrl: $cachedUrl,
-                shortCode: $code,
-                clicks: 0,
-                expiresAt: null
-            ));
+        try {
+            $cachedUrl = $this->hotCache->get($code);
+            if ($cachedUrl) {
+                return ShortUrl::restore(new ShortUrlData(
+                    id: 'from-l1',
+                    originalUrl: $cachedUrl,
+                    shortCode: $code,
+                    clicks: 0,
+                    expiresAt: null
+                ));
+            }
+            if (Redis::exists("shorturl:404:{$code}")) {
+                return null;
+            }
+            if (!$this->bloom->mightExist("code:{$code}")) {
+                return null;
+            }
+            $shortUrl = $this->cache->remember(
+                $this->cacheKey($code),
+                fn() => $this->repository->findByCode($code),
+                self::DEFAULT_TTL
+            );
+            if (!$shortUrl || $shortUrl->isExpired()) {
+                Redis::pipeline(function ($pipe) use ($code) {
+                    $pipe->setex("shorturl:404:{$code}", 3600, 1);
+                    $pipe->del($this->cacheKey($code));
+                });
+                return null;
+            }
+            $this->hotCache->put($code, $shortUrl->originalUrl());
+            $this->syncRealTimeClicks($shortUrl, $code);
+            return $shortUrl;
+        } catch (\Throwable $e) {
+            report($e);
+            return $this->repository->findByCode($code);
         }
-        if (Redis::exists("shorturl:404:{$code}")) {
-            return null;
-        }
-        if (!$this->bloom->mightExist("code:{$code}")) {
-            return null;
-        }
-        $shortUrl = $this->cache->remember(
-            $this->cacheKey($code),
-            fn() => $this->repository->findByCode($code),
-            self::DEFAULT_TTL
-        );
-        if (!$shortUrl) {
-            Redis::setex("shorturl:404:{$code}", 3600, 1);
-            return null;
-        }
-        $this->hotCache->put($code, $shortUrl->originalUrl());
-        $this->syncRealTimeClicks($shortUrl, $code);
-        return $shortUrl;
     }
 
     public function findByOriginalUrl(string $url): ?ShortUrl

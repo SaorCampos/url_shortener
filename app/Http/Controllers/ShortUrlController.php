@@ -29,7 +29,7 @@ class ShortUrlController extends Controller
             'short_code' => $shortUrl->shortCode(),
             'short_url' => url('/' . $shortUrl->shortCode()),
             'clicks' => $shortUrl->clicks(),
-            'expires_at' => $shortUrl->expiresAt()->format('Y-m-d H:i:s')
+            'expires_at' => $shortUrl->expiresAt()?->format('Y-m-d H:i:s')
         ], 201);
     }
     public function findByCode(string $code): Response

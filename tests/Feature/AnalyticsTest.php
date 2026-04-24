@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 
+use App\Infrastructure\Cache\BloomFilterService;
 use App\Infrastructure\Persistence\Eloquent\Models\ClickModel;
 use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,12 +22,18 @@ class AnalyticsTest extends TestCase
     {
         parent::setUp();
         Redis::flushall();
+        $code = 'ABC123';
         $this->url = ShortUrlModel::create([
             'id' => (string) Str::ulid(),
             'original_url' => 'https://example.com',
-            'short_code' => 'ABC123',
+            'short_code' => $code,
             'clicks' => 0
         ]);
+        app(BloomFilterService::class)->add("code:{$code}");
+    }
+    protected function allowInBloomFilter(string $code): void
+    {
+        app(BloomFilterService::class)->add("code:{$code}");
     }
 
     #[Test]
@@ -48,12 +55,14 @@ class AnalyticsTest extends TestCase
     public function it_returns_top_urls_by_total_clicks()
     {
         // Arrange
+        $code2 = 'GOG456';
         $url2 = ShortUrlModel::create([
             'id' => (string) Str::ulid(),
             'original_url' => 'https://google.com',
-            'short_code' => 'GOG456',
+            'short_code' => $code2,
             'clicks' => 100
         ]);
+        $this->allowInBloomFilter($code2);
         // Act
         $response = $this->getJson("/api/analytics-top-day");
         // Assert

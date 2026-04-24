@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Console\Commands\ProcessClicksStream;
+use App\Domain\ShortUrl\Events\ShortUrlAccessed;
 use App\Infrastructure\Cache\BloomFilterService;
 use App\Infrastructure\Persistence\Eloquent\Models\ShortUrlModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Mockery;
@@ -27,16 +29,13 @@ class ShortUrlTrackingTest extends TestCase
     #[Test]
     public function a_redirect_increments_all_redis_counters()
     {
-        // Arrange
+        config(['queue.default' => 'sync']);
         $code = 'abc123';
         $mockPosition = Mockery::mock(Position::class);
         $mockPosition->countryCode = 'BR';
         $mockPosition->latitude = -23.55;
         $mockPosition->longitude = -46.63;
-        Location::shouldReceive('get')
-            ->once()
-            ->withAnyArgs()
-            ->andReturn($mockPosition);
+        Location::shouldReceive('get')->andReturn($mockPosition);
         ShortUrlModel::create([
             'id' => (string)Str::ulid(),
             'original_url' => 'https://google.com',
@@ -46,14 +45,18 @@ class ShortUrlTrackingTest extends TestCase
         ]);
         app(BloomFilterService::class)->add("code:{$code}");
         // Act
-        $this->get("/{$code}")->assertRedirect('https://google.com');
+        $response = $this->get("/{$code}");
+        $response->assertRedirect('https://google.com');
         $streamEntries = Redis::xrange('shorturl:clicks', '-', '+');
+        $this->assertNotEmpty($streamEntries, "ERRO: O Listener não gravou no Redis Stream 'shorturl:clicks'. Verifique se o Evento está disparando.");
+        $firstEntryId = array_key_first($streamEntries);
+        $firstEventFields = $streamEntries[$firstEntryId];
+        $timestamp = $firstEventFields['ts'] ?? $firstEventFields['timestamp'] ?? null;
+        $eventDate = date('Ymd', (int)$timestamp);
         app(ProcessClicksStream::class)->processEvents($streamEntries);
-        $firstEvent = current($streamEntries);
-        $eventDate = date('Ymd', $firstEvent['ts']);
         // Assert
         $countryData = Redis::hgetall("shorturl:country:{$code}:{$eventDate}");
-        $this->assertArrayHasKey('BR', $countryData);
+        $this->assertArrayHasKey('BR', $countryData, "O counter por país não foi criado no Redis.");
         $this->assertEquals(1, $countryData['BR']);
     }
     #[Test]
@@ -89,11 +92,22 @@ class ShortUrlTrackingTest extends TestCase
     #[Test]
     public function it_returns_404_if_code_is_not_in_bloom_filter()
     {
+        // Arrange
+        config(['session.driver' => 'array']);
+        config(['cache.default' => 'array']);
         $code = 'notino';
-        $mock = Mockery::mock(BloomFilterService::class);
-        $mock->shouldReceive('mightExist')->with("code:{$code}")->andReturn(false);
-        $this->app->instance(BloomFilterService::class, $mock);
+        $mockBloom = Mockery::mock(BloomFilterService::class);
+        $mockBloom->shouldReceive('mightExist')->with("code:{$code}")->andReturn(false);
+        $this->app->instance(BloomFilterService::class, $mockBloom);
+        Redis::partialMock()
+            ->shouldReceive('exists')
+            ->with("shorturl:404:{$code}")
+            ->andReturn(false);
+        config(['session.driver' => 'array']);
+        config(['cache.default' => 'array']);
+        // Act
         $response = $this->get("/{$code}");
+        // Assert
         $response->assertStatus(404);
     }
     #[Test]
@@ -132,6 +146,7 @@ class ShortUrlTrackingTest extends TestCase
         // Arrange
         config(['session.driver' => 'array']);
         config(['cache.default' => 'array']);
+        Event::fake([ShortUrlAccessed::class]);
         $code = 'redoff';
         ShortUrlModel::create([
             'id' => (string)Str::ulid(),
@@ -140,7 +155,7 @@ class ShortUrlTrackingTest extends TestCase
             'clicks' => 0
         ]);
         Redis::shouldReceive('connection')->andReturnSelf();
-        Redis::shouldReceive('pipeline', 'get', 'exists', 'setex', 'del')
+        Redis::shouldReceive('getbit', 'get', 'exists', 'setex', 'del', 'pipeline', 'zincrby', 'xadd', 'eval')
             ->zeroOrMoreTimes()
             ->andReturnUsing(function () {
                 throw new \Exception('Redis Offline');

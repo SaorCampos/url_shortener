@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Application\ShortUrl\Listeners\TrackUrlClick;
 use App\Console\Commands\ProcessClicksStream;
 use App\Domain\Analytics\Repositories\AnalyticsRepository;
 use App\Domain\Shared\Cache\CacheService;
 use App\Domain\Shared\Services\IdGenerator;
+use App\Domain\ShortUrl\Events\ShortUrlAccessed;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use App\Domain\ShortUrl\Services\Base62Encoder;
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
@@ -19,6 +21,7 @@ use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentAnalyticsReposi
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -46,21 +49,25 @@ class AppServiceProvider extends ServiceProvider
         Artisan::starting(function ($artisan) {
             $artisan->resolve(ProcessClicksStream::class);
         });
+        Event::listen(
+            ShortUrlAccessed::class,
+            TrackUrlClick::class
+        );
     }
 
     private function registerRepositories(): void
     {
         $this->app->bind(
-        ShortUrlRepository::class,
-        function ($app) {
-            return new CachedShortUrlRepository(
-                $app->make(EloquentShortUrlRepository::class),
-                $app->make(CacheService::class),
-                $app->make(HotUrlCache::class),
-                $app->make(BloomFilterService::class)
-            );
-        }
-    );
+            ShortUrlRepository::class,
+            function ($app) {
+                return new CachedShortUrlRepository(
+                    $app->make(EloquentShortUrlRepository::class),
+                    $app->make(CacheService::class),
+                    $app->make(HotUrlCache::class),
+                    $app->make(BloomFilterService::class)
+                );
+            }
+        );
         $this->app->singleton(HotUrlCache::class, function () {
             return new HotUrlCache(1000);
         });
