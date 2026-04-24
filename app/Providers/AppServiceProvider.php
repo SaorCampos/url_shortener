@@ -9,6 +9,7 @@ use App\Domain\Shared\Services\IdGenerator;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use App\Domain\ShortUrl\Services\Base62Encoder;
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
+use App\Infrastructure\Cache\BloomFilterService;
 use App\Infrastructure\Cache\CachedAnalyticsRepository;
 use App\Infrastructure\Cache\CachedShortUrlRepository;
 use App\Infrastructure\Cache\HotUrlCache;
@@ -50,14 +51,16 @@ class AppServiceProvider extends ServiceProvider
     private function registerRepositories(): void
     {
         $this->app->bind(
-            ShortUrlRepository::class,
-            function ($app) {
-                return new CachedShortUrlRepository(
-                    $app->make(EloquentShortUrlRepository::class),
-                    $app->make(CacheService::class)
-                );
-            }
-        );
+        ShortUrlRepository::class,
+        function ($app) {
+            return new CachedShortUrlRepository(
+                $app->make(EloquentShortUrlRepository::class),
+                $app->make(CacheService::class),
+                $app->make(HotUrlCache::class),
+                $app->make(BloomFilterService::class)
+            );
+        }
+    );
         $this->app->singleton(HotUrlCache::class, function () {
             return new HotUrlCache(1000);
         });

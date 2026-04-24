@@ -3,6 +3,7 @@
 namespace App\Infrastructure\Cache;
 
 use App\Domain\Shared\Cache\CacheService;
+use App\Domain\ShortUrl\DTO\ShortUrlData;
 use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use Illuminate\Support\Facades\Redis;
@@ -13,7 +14,9 @@ class CachedShortUrlRepository implements ShortUrlRepository
 
     public function __construct(
         private ShortUrlRepository $repository,
-        private CacheService $cache
+        private CacheService $cache,
+        private HotUrlCache $hotCache,
+        private BloomFilterService $bloom
     ) {}
 
     public function save(ShortUrl $url): ShortUrl
@@ -26,14 +29,33 @@ class CachedShortUrlRepository implements ShortUrlRepository
 
     public function findByCode(string $code): ?ShortUrl
     {
+        $cachedUrl = $this->hotCache->get($code);
+        if ($cachedUrl) {
+            return ShortUrl::restore(new ShortUrlData(
+                id: 'from-l1',
+                originalUrl: $cachedUrl,
+                shortCode: $code,
+                clicks: 0,
+                expiresAt: null
+            ));
+        }
+        if (Redis::exists("shorturl:404:{$code}")) {
+            return null;
+        }
+        if (!$this->bloom->mightExist("code:{$code}")) {
+            return null;
+        }
         $shortUrl = $this->cache->remember(
             $this->cacheKey($code),
             fn() => $this->repository->findByCode($code),
             self::DEFAULT_TTL
         );
-        if ($shortUrl instanceof ShortUrl) {
-            $this->syncRealTimeClicks($shortUrl, $code);
+        if (!$shortUrl) {
+            Redis::setex("shorturl:404:{$code}", 3600, 1);
+            return null;
         }
+        $this->hotCache->put($code, $shortUrl->originalUrl());
+        $this->syncRealTimeClicks($shortUrl, $code);
         return $shortUrl;
     }
 
