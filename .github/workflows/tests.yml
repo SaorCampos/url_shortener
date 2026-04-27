@@ -14,11 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Fix permissions
-        run: sudo chown -R 1000:1000 .
-
       - name: Create .env file
         run: cp .env.example .env
+
+      - name: Fix permissions
+        run: sudo chown -R 1000:1000 .
 
       - name: Build and Start Infrastructure
         run: docker compose up -d db redis
@@ -29,7 +29,6 @@ jobs:
       - name: Prepare Database and Key
         run: |
           docker compose run --rm app php artisan key:generate
-          # Aguarda o banco de dados aceitar conexões
           sleep 5
           docker compose run --rm app php artisan migrate --force
 
@@ -39,6 +38,7 @@ jobs:
           DB_PASSWORD: postgres
         run: |
           docker compose up -d app
+          sleep 3
           docker compose exec -T app php artisan test --parallel
 
       - name: Debug Logs on Failure
