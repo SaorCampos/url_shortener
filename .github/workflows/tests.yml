@@ -15,32 +15,32 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create .env file
+        run: cp .env.example .env
+
+      - name: Build and Start Infrastructure
+        run: docker compose up -d db redis
+
+      - name: Install Dependencies (Container Run)
+        run: docker compose run --rm app composer install --prefer-dist --no-interaction
+
+      - name: Prepare Database and Key
         run: |
-          cp .env.example .env
-          # Opcional se seu .env.example já estiver correto:
-          sed -i 's/DB_HOST=127.0.0.1/DB_HOST=db/' .env
-          sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=redis/' .env
+          docker compose run --rm app php artisan key:generate
+          # Aguarda o banco de dados aceitar conexões
+          sleep 5
+          docker compose run --rm app php artisan migrate --force
 
-      - name: Build and Start Containers
-        run: |
-          docker compose up -d db redis app
-          echo "Waiting for app container to be ready..."
-          timeout 60s bash -c 'until [ "$(docker inspect -f {{.State.Running}} urlshortener_app)" == "true" ]; do sleep 1; done'
-
-      - name: Install Composer Dependencies
-        run: docker compose exec -T app composer install --prefer-dist --no-interaction
-
-      - name: Generate App Key
-        run: docker compose exec -T app php artisan key:generate
-
-      - name: Run Migrations
-        run: docker compose exec -T app php artisan migrate --force
-
-      - name: Execute Tests
+      - name: Start App and Execute Tests
         env:
           DB_DATABASE: url_shortener_test
           DB_PASSWORD: postgres
-        run: docker compose exec -T app php artisan test --parallel
+        run: |
+          docker compose up -d app
+          docker compose exec -T app php artisan test --parallel
+
+      - name: Debug Logs on Failure
+        if: failure()
+        run: docker compose logs app
 
       - name: Shutdown Containers
         if: always()
