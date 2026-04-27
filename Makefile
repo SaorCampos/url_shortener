@@ -2,6 +2,7 @@ APP_CONTAINER=app
 
 up:
 	docker compose up -d --build
+	docker exec -it urlshortener_app php artisan shorturl:sync-bloom
 
 down:
 	docker compose down
@@ -17,43 +18,43 @@ ps:
 	docker compose ps
 
 shell:
-	docker compose exec $(APP_CONTAINER) bash
+	docker compose exec urlshortener_app bash
 
 composer:
-	docker compose exec $(APP_CONTAINER) composer install
+	docker compose exec urlshortener_app composer install
 
 update:
-	docker compose exec $(APP_CONTAINER) composer update
+	docker compose exec urlshortener_app composer update
 
 key:
-	docker compose exec $(APP_CONTAINER) php artisan key:generate
+	docker compose exec urlshortener_app php artisan key:generate
 
 migrate:
-	docker compose exec $(APP_CONTAINER) php artisan migrate
+	docker compose exec urlshortener_app php artisan migrate
 
 fresh:
-	docker compose exec $(APP_CONTAINER) php artisan migrate:fresh
+	docker compose exec urlshortener_app php artisan migrate:fresh
 
 seed:
-	docker compose exec $(APP_CONTAINER) php artisan db:seed
+	docker compose exec urlshortener_app php artisan db:seed
 
 optimize:
-	docker compose exec $(APP_CONTAINER) php artisan optimize
+	docker compose exec urlshortener_app php artisan optimize
 
 clear:
-	docker compose exec $(APP_CONTAINER) php artisan optimize:clear
+	docker compose exec urlshortener_app php artisan optimize:clear
 
 cache:
-	docker compose exec $(APP_CONTAINER) php artisan config:cache
+	docker compose exec urlshortener_app php artisan config:cache
 
 test:
-	docker compose exec $(APP_CONTAINER) php artisan test
+	docker compose exec urlshortener_app php artisan test
 
 tinker:
-	docker compose exec $(APP_CONTAINER) php artisan tinker
+	docker compose exec urlshortener_app php artisan tinker
 
 queue:
-	docker compose exec $(APP_CONTAINER) php artisan queue:work
+	docker compose exec urlshortener_app php artisan queue:work
 
 setup:
 	docker compose up -d --build
@@ -64,6 +65,8 @@ setup:
 	docker compose exec $(APP_CONTAINER) php artisan config:clear
 	docker compose exec $(APP_CONTAINER) php artisan cache:clear
 	docker compose exec $(APP_CONTAINER) php artisan octane:install --server=swoole
+	docker compose exec $(APP_CONTAINER) php artisan shorturl:sync-bloom
+
 reset:
 	docker compose down -v
 	docker compose up -d --build

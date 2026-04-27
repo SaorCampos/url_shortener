@@ -3,7 +3,7 @@
 ![PHP Version](https://img.shields.io/badge/php-8.3-blue.svg)
 ![Laravel Version](https://img.shields.io/badge/laravel-11-red.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Performance](https://img.shields.io/badge/status-1.1k_req/s-orange.svg)
+![Performance](https://img.shields.io/badge/status-2k_req/s-orange.svg)
 
 ---
 # PT-BR
@@ -25,7 +25,7 @@ Focado em estabilidade e experiência do usuário.
 
 ### Stress Test (500 VUs - Full Load)
 Focado em encontrar o limite de vazão da infraestrutura.
-* **Throughput:** 1.120 req/s
+* **Throughput:** 2.079 req/s
 * **Taxa de Sucesso:** 100% (Zero falhas sob estresse máximo)
 <p align="center"><img src="docs/StressTestResult.png" width="800"></p>
 
@@ -78,7 +78,7 @@ Focused on stability and user experience.
 
 Focused on finding the throughput limits of the infrastructure.
 
-* **Throughput:** 1,120 req/s
+* **Throughput:** 2,079 req/s
 * **Success Rate:** 100% (Zero failures under maximum stress)
 
 <p align="center"><img src="docs/StressTestResult.png" width="800"></p>

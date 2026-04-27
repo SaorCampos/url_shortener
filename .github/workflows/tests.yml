@@ -1,0 +1,50 @@
+name: Tests CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: cp .env.example .env
+
+      - name: Fix permissions
+        run: sudo chown -R 1000:1000 .
+
+      - name: Build and Start Infrastructure
+        run: docker compose up -d db redis
+
+      - name: Install Dependencies (Container Run)
+        run: docker compose run --rm -u root app bash -c "git config --global --add safe.directory /var/www && composer install --prefer-dist --no-interaction"
+
+      - name: Prepare Database and Key
+        run: |
+          docker compose run --rm app php artisan key:generate
+          sleep 5
+          docker compose run --rm app php artisan migrate --force
+
+      - name: Start App and Execute Tests
+        env:
+          DB_DATABASE: url_shortener_test
+          DB_PASSWORD: postgres
+        run: |
+          docker compose up -d app
+          sleep 3
+          docker compose exec -T app php artisan test
+
+      - name: Debug Logs on Failure
+        if: failure()
+        run: docker compose logs app
+
+      - name: Shutdown Containers
+        if: always()
+        run: docker compose down

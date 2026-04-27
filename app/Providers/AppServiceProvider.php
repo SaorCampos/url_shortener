@@ -2,12 +2,16 @@
 
 namespace App\Providers;
 
+use App\Application\ShortUrl\Listeners\TrackUrlClick;
+use App\Console\Commands\ProcessClicksStream;
 use App\Domain\Analytics\Repositories\AnalyticsRepository;
 use App\Domain\Shared\Cache\CacheService;
 use App\Domain\Shared\Services\IdGenerator;
+use App\Domain\ShortUrl\Events\ShortUrlAccessed;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use App\Domain\ShortUrl\Services\Base62Encoder;
 use App\Domain\ShortUrl\Services\ShortCodeGenerator;
+use App\Infrastructure\Cache\BloomFilterService;
 use App\Infrastructure\Cache\CachedAnalyticsRepository;
 use App\Infrastructure\Cache\CachedShortUrlRepository;
 use App\Infrastructure\Cache\HotUrlCache;
@@ -15,7 +19,9 @@ use App\Infrastructure\Cache\RedisService;
 use App\Infrastructure\Ids\PoolIdGenerator;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentAnalyticsRepository;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentShortUrlRepository;
+use Illuminate\Console\Application as Artisan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -40,6 +46,13 @@ class AppServiceProvider extends ServiceProvider
                 Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST
             );
         }
+        Artisan::starting(function ($artisan) {
+            $artisan->resolve(ProcessClicksStream::class);
+        });
+        Event::listen(
+            ShortUrlAccessed::class,
+            TrackUrlClick::class
+        );
     }
 
     private function registerRepositories(): void
@@ -49,7 +62,9 @@ class AppServiceProvider extends ServiceProvider
             function ($app) {
                 return new CachedShortUrlRepository(
                     $app->make(EloquentShortUrlRepository::class),
-                    $app->make(CacheService::class)
+                    $app->make(CacheService::class),
+                    $app->make(HotUrlCache::class),
+                    $app->make(BloomFilterService::class)
                 );
             }
         );

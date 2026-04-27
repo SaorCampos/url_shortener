@@ -2,89 +2,50 @@
 
 namespace App\Console\Commands;
 
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Redis;
+use Throwable;
 
 class FlushClickCounters extends Command
 {
-    #   command: php artisan shorturl:flush-clicks
     protected $signature = 'shorturl:flush-clicks {--days=7 : wipes cached click counters older than specified days}';
     protected $description = 'Wipe cached click counters from Redis to free up memory.';
 
     public function handle()
     {
-        while (true) {
-            $days = (int) $this->option('days');
-            $this->info("Iniciando limpeza de contadores com mais de {$days} dias...");
-            $cursor = "0";
-            $countDeleted = 0;
-            do {
-                [$cursor, $keys] = Redis::scan($cursor, [
-                    'MATCH' => 'shorturl:clicks:minute:*',
-                    'COUNT' => 1000
-                ]);
-                if (!empty($keys)) {
-                    foreach ($keys as $key) {
-                        $parts = explode(':', $key);
-                        $dateStr = end($parts);
-                        try {
-                            $keyDate = \DateTimeImmutable::createFromFormat('YmdHi', $dateStr);
-                            if ($keyDate && $keyDate < now()->subDays($days)) {
-                                Redis::del($key);
-                                $countDeleted++;
-                            }
-                        } catch (\Exception $e) {
-                            continue;
-                        }
-                    }
-                }
-            } while ($cursor !== "0");
-            $this->cleanupTopMinutes($days);
-            $this->cleanUpGeoHeatMap(30);
-            $this->info("Limpeza concluída! {$countDeleted} chaves removidas.");
-        }
+        $days = (int) $this->option('days');
+        $this->info("Iniciando limpeza de contadores (threshold: {$days} dias)...");
+        $this->cleanKeysByPattern('shorturl:clicks:minute:*', 'YmdHi', $days);
+        $this->cleanKeysByPattern('shorturl:top:*', 'YmdHi', $days);
+        $this->cleanKeysByPattern('shorturl:country:*:*', 'Ymd', $days);
+        $this->info("Processo de limpeza finalizado.");
     }
 
-    private function cleanupTopMinutes(int $days)
+    private function cleanKeysByPattern(string $pattern, string $dateFormat, int $days)
     {
-        $cursor = "0";
-        do {
-            [$cursor, $keys] = Redis::scan($cursor, [
-                'MATCH' => 'shorturl:top:*', // shorturl:top:YmdHi
-                'COUNT' => 1000
-            ]);
-            foreach ($keys as $key) {
-                $parts = explode(':', $key);
-                $dateStr = end($parts);
-                $keyDate = \DateTimeImmutable::createFromFormat('YmdHi', $dateStr);
-                if ($keyDate && $keyDate < now()->subDays($days)) {
-                    Redis::del($key);
+        $countDeleted = 0;
+        $threshold = now()->subDays($days)->timestamp;
+        $keys = Redis::keys($pattern);
+        if (empty($keys)) {
+            $this->info("Padrão [{$pattern}]: Nenhuma chave encontrada.");
+            return;
+        }
+        $prefix = config('database.redis.options.prefix', '');
+        foreach ($keys as $rawKey) {
+            $cleanKey = $prefix ? preg_replace('/^' . preg_quote($prefix, '/') . '/', '', $rawKey) : $rawKey;
+            $parts = explode(':', $cleanKey);
+            $dateStr = end($parts);
+            try {
+                $keyDate = Carbon::createFromFormat($dateFormat, $dateStr);
+                if ($keyDate && $keyDate->timestamp < $threshold) {
+                    Redis::del($cleanKey);
+                    $countDeleted++;
                 }
+            } catch (\Throwable $e) {
+                continue;
             }
-        } while ($cursor !== "0");
-    }
-    private function cleanUpGeoHeatMap(int $days)
-    {
-        $cursor = "0";
-        $count = 0;
-        $this->info("Limpando estatísticas de países com mais de {$days} dias...");
-        do {
-            [$cursor, $keys] = Redis::scan($cursor, [
-                'MATCH' => 'shorturl:country:*:*',
-                'COUNT' => 1000
-            ]);
-            foreach ($keys as $key) {
-                $parts = explode(':', $key);
-                $dateStr = end($parts);
-                if (strlen($dateStr) === 8 && is_numeric($dateStr)) {
-                    $keyDate = \DateTimeImmutable::createFromFormat('Ymd', $dateStr);
-                    if ($keyDate && $keyDate < now()->subDays($days)) {
-                        Redis::del($key);
-                        $count++;
-                    }
-                }
-            }
-        } while ($cursor !== "0");
-        $this->info("Removidas {$count} chaves de países obsoletas.");
+        }
+        $this->info("Padrão [{$pattern}]: {$countDeleted} chaves removidas.");
     }
 }

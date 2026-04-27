@@ -26,7 +26,7 @@ class ShortUrl
         if (!$expiresAt) {
             $days = config('shorturl.default_expiration_days');
             $expiresAt = ExpirationDate::from(
-                new \DateTimeImmutable("+{$days} days")
+                new DateTimeImmutable("+{$days} days")
             );
         }
         return new self(

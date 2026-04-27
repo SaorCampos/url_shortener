@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Stevebauman\Location\Facades\Location;
 
-class ProcessClickStream extends Command
+class ProcessClicksStream extends Command
 {
-    protected $signature = 'shorturl:process-clicks';
+    protected $signature = 'shorturl:process-click {--once}';
+    protected $description = 'Async clicks processor';
     private const STREAM = 'shorturl:clicks';
     private const GROUP = 'click-workers';
 
@@ -28,6 +29,7 @@ class ProcessClickStream extends Command
     {
         $this->info("Worker iniciado: {$this->consumer}");
         $this->ensureStreamAndGroup();
+        $once = $this->option('once');
         while (true) {
             try {
                 $events = Redis::xreadgroup(
@@ -55,6 +57,7 @@ class ProcessClickStream extends Command
                     continue;
                 }
                 $this->processEvents($events[self::STREAM]);
+                if ($once) break;
             } catch (\Throwable $e) {
                 Log::error("Worker crashou: " . $e->getMessage());
                 sleep(1);
@@ -62,7 +65,7 @@ class ProcessClickStream extends Command
         }
     }
 
-    private function processEvents(array $events): void
+    public function processEvents(array $events): void
     {
         $ids = [];
         $inserts = [];
@@ -112,7 +115,6 @@ class ProcessClickStream extends Command
     private function getLocation(string $ip): array
     {
         if (isset($this->geoCache[$ip])) return $this->geoCache[$ip];
-
         try {
             $pos = Location::get($ip);
             $data = [
@@ -121,6 +123,7 @@ class ProcessClickStream extends Command
                 'lng' => $pos ? $pos->longitude : null,
             ];
         } catch (\Throwable $e) {
+            Log::warning("Erro ao geolocalizar IP {$ip}: " . $e->getMessage());
             $data = ['country' => null, 'lat' => null, 'lng' => null];
         }
         $this->geoCache[$ip] = $data;
