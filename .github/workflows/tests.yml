@@ -1,0 +1,46 @@
+name: Tests CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+
+    services:
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          # Ajuste variáveis para o ambiente de CI se necessário
+          sed -i 's/DB_HOST=127.0.0.1/DB_HOST=db/' .env
+          sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=redis/' .env
+
+      - name: Build and Start Containers
+        run: docker-compose up -d db redis app
+
+      - name: Install Composer Dependencies
+        run: docker-compose exec -T app composer install --prefer-dist --no-interaction
+
+      - name: Generate App Key
+        run: docker-compose exec -T app php artisan key:generate
+
+      - name: Run Migrations
+        run: docker-compose exec -T app php artisan migrate --force
+
+      - name: Execute Tests
+        env:
+          DB_DATABASE: url_shortener_test
+          DB_PASSWORD: postgres
+        run: docker-compose exec -T app php artisan test --parallel
+
+      - name: Shutdown Containers
+        if: always()
+        run: docker-compose down
