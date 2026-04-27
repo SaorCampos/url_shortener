@@ -24,7 +24,9 @@ jobs:
       - name: Build and Start Containers
         run: |
           docker compose up -d db redis app
-          sleep 10
+          echo "Waiting for app container to be ready..."
+          timeout 60s bash -c 'until [ "$(docker inspect -f {{.State.Running}} urlshortener_app)" == "true" ]; do sleep 1; done'
+
       - name: Install Composer Dependencies
         run: docker compose exec -T app composer install --prefer-dist --no-interaction
 
