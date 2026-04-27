@@ -24,7 +24,7 @@ jobs:
         run: docker compose up -d db redis
 
       - name: Install Dependencies (Container Run)
-        run: docker compose run --rm app composer install --prefer-dist --no-interaction
+        run: docker compose run --rm -u root app bash -c "git config --global --add safe.directory /var/www && composer install --prefer-dist --no-interaction"
 
       - name: Prepare Database and Key
         run: |
