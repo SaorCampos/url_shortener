@@ -22,7 +22,9 @@ jobs:
           sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=redis/' .env
 
       - name: Build and Start Containers
-        run: docker compose up -d db redis app
+        run: |
+          docker-compose up -d db redis app
+          sleep 10 # Dá 10 segundos para o Swoole e o Banco estabilizarem
 
       - name: Install Composer Dependencies
         run: docker compose exec -T app composer install --prefer-dist --no-interaction
