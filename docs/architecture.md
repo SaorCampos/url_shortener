@@ -28,30 +28,56 @@ Um dos maiores gargalos de um encurtador é gravar o log de acesso no banco de d
 * **Solução:** Utilizamos o `Octane::task()`. Quando um redirecionamento ocorre, o Worker principal envia os dados para um **Task Worker** e retorna a resposta 302 imediatamente para o usuário.
 * **Resultado:** A escrita no PostgreSQL ocorre em background, removendo o I/O do banco de dados do caminho crítico da requisição.
 
-### 3. Estratégia de Caching
-O fluxo de redirecionamento prioriza o **Redis** (Cache-Aside pattern).
-1. O Worker verifica se o código existe no Redis.
-2. Se existir, o redirecionamento é servido em < 2ms.
-3. Se não, busca no PostgreSQL e popula o cache para as próximas requisições.
+### 3. Estratégia de Caching Multicamadas
+Para evitar o Cache Stampede e proteger o banco de dados contra requisições inválidas, implementamos uma hierarquia de proteção:
+
+* L1 - Hot Cache (Memory): Armazenamento em memória local do worker (via Swoole Table ou Array estático) para as URLs mais acessadas, reduzindo latência de rede para o Redis.
+
+* L2 - Redis (Distributed): Cache global com TTL configurado, servindo como a fonte principal de verdade para o estado da aplicação.
+
+* Bloom Filter (Probabilistic Shield): Antes de qualquer consulta ao PostgreSQL para chaves inexistentes, consultamos um Bloom Filter no Redis. Se o filtro retornar false, a requisição é rejeitada imediatamente como 404, sem nunca tocar no banco de dados.
+
+Impacto: Proteção total contra ataques de enumeração ou buscas massivas por códigos inexistentes.
+
+
+### 4. 🛡 Resiliência e Tolerância a Falhas
+A aplicação foi desenhada para "falhar graciosamente" (graceful degradation):
+
+* Circuit Breaker Mental: Se o Redis estiver indisponível, o CachedShortUrlRepository captura a exceção e direciona a busca automaticamente para o PostgreSQL, garantindo que o serviço continue online mesmo com degradação de performance.
+
+* Shadow Logging: Erros em tarefas de analytics (Task Workers) são reportados, mas nunca interrompem o redirecionamento do usuário final.
 
 ## 🔄 Fluxo da Requisição
 
 ```mermaid
 sequenceDiagram
     participant U as Usuário
-    participant N as Nginx
-    participant W as Swoole Worker (App)
-    participant R as Redis
-    participant T as Task Worker (Background)
+    participant W as Swoole Worker
+    participant HC as Hot Cache (L1)
+    participant BF as Bloom Filter
+    participant R as Redis (L2)
     participant DB as PostgreSQL
 
-    U->>N: GET /code
-    N->>W: Encaminha Requisição
-    W->>R: Busca URL Original
-    R-->>W: Retorna URL
-    W->>T: Dispara Registro de Analytics (Async)
+    U->>W: GET /code
+    W->>HC: 1. Check L1
+    alt Existe no L1
+        HC-->>W: Retorna URL
+    else Não existe no L1
+        W->>BF: 2. Might Exist?
+        alt Bloom Filter diz NÃO
+            BF-->>W: 404 Imediato
+        else Bloom Filter diz TALVEZ
+            W->>R: 3. Check L2 (Redis)
+            alt Existe no Redis
+                R-->>W: Retorna URL
+            else Cache Miss
+                W->>DB: 4. Query PostgreSQL
+                DB-->>W: Retorna URL
+                W->>R: Popula L2
+            end
+        end
+    end
     W-->>U: HTTP 302 Redirect
-    T->>DB: Persiste log de acesso
 ```
 
 ---
@@ -89,32 +115,55 @@ One of the biggest bottlenecks in a URL shortener is logging access data to the 
 * **Solution:** We use `Octane::task()`. When a redirection occurs, the main Worker sends the data to a **Task Worker** and immediately returns a 302 response to the user.
 * **Result:** Writing to PostgreSQL happens in the background, removing database I/O from the critical request path.
 
-### 3. Caching Strategy
+### 3. Multi-tier Caching Strategy
+To prevent Cache Stampede and protect the database against invalid requests, we implemented a protection hierarchy:
 
-The redirection flow prioritizes **Redis** (Cache-Aside pattern).
+* L1 - Hot Cache (Memory): Local worker memory storage (via Swoole Table or static arrays) for top-accessed URLs, reducing network latency to Redis.
 
-1. The Worker checks if the code exists in Redis.
-2. If it exists, the redirection is served in < 2ms.
-3. If not, it queries PostgreSQL and populates the cache for future requests.
+* L2 - Redis (Distributed): Global cache with configured TTL, serving as the primary source of truth for application state.
+
+* Bloom Filter (Probabilistic Shield): Before querying PostgreSQL for non-existent keys, we consult a Bloom Filter in Redis. If it returns false, the request is immediately rejected (404), never touching the database.
+
+Impact: Complete protection against enumeration attacks or massive searches for non-existent codes.
+
+### 4. 4. 🛡 Resilience and Fault Tolerance
+The application is designed for "graceful degradation":
+
+* Mental Circuit Breaker: If Redis is unavailable, the CachedShortUrlRepository catches the exception and automatically directs the search to PostgreSQL, ensuring the service remains online with a slight performance trade-off.
+
+* Shadow Logging: Errors in analytics tasks (Task Workers) are reported but never interrupt the end-user's redirection flow.
 
 ## 🔄 Request Flow
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant N as Nginx
-    participant W as Swoole Worker (App)
-    participant R as Redis
-    participant T as Task Worker (Background)
+    participant W as Swoole Worker
+    participant HC as Hot Cache (L1)
+    participant BF as Bloom Filter
+    participant R as Redis (L2)
     participant DB as PostgreSQL
 
-    U->>N: GET /code
-    N->>W: Forward Request
-    W->>R: Fetch Original URL
-    R-->>W: Return URL
-    W->>T: Trigger Analytics Logging (Async)
+    U->>W: GET /code
+    W->>HC: 1. Check L1
+    alt Exists in L1
+        HC-->>W: Return URL
+    else Not in L1
+        W->>BF: 2. Might Exist?
+        alt Bloom Filter says NO
+            BF-->>W: Immediate 404
+        else Bloom Filter says MAYBE
+            W->>R: 3. Check L2 (Redis)
+            alt Exists in Redis
+                R-->>W: Return URL
+            else Cache Miss
+                W->>DB: 4. Query PostgreSQL
+                DB-->>W: Return URL
+                W->>R: Populate L2
+            end
+        end
+    end
     W-->>U: HTTP 302 Redirect
-    T->>DB: Persist Access Log
 ```
 
 ---
