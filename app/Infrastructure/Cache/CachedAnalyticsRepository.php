@@ -22,7 +22,7 @@ class CachedAnalyticsRepository implements AnalyticsRepository
         return $this->cache->remember(
             "analytics:minutes:{$urlId}:{$minutes}",
             fn() => $this->repository->getMinuteStats($urlId, $minutes),
-            self::TTL_SHORT,
+            self::TTL_VERY_SHORT,
         );
     }
     public function getTopUrls(int $limit): array

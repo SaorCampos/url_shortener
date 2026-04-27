@@ -3,10 +3,9 @@
 namespace App\Application\ShortUrl\Listeners;
 
 use App\Domain\ShortUrl\Events\ShortUrlAccessed;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Redis;
 
-class TrackUrlClick implements ShouldQueue
+class TrackUrlClick
 {
     public function handle(ShortUrlAccessed $event): void
     {

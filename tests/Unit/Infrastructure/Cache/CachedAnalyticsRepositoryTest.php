@@ -33,7 +33,7 @@ class CachedAnalyticsRepositoryTest extends TestCase
         $expected = [['label' => '10:00', 'value' => 5]];
         $this->cacheService->shouldReceive('remember')
             ->once()
-            ->with("analytics:minutes:{$urlId}:{$minutes}", Mockery::any(), 15)
+            ->with("analytics:minutes:{$urlId}:{$minutes}", Mockery::any(), 5)
             ->andReturn($expected);
         $result = $this->cachedRepository->getMinuteStats($urlId, $minutes);
         $this->assertEquals($expected, $result);

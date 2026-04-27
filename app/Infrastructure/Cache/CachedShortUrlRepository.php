@@ -22,8 +22,10 @@ class CachedShortUrlRepository implements ShortUrlRepository
     public function save(ShortUrl $url): ShortUrl
     {
         $saved = $this->repository->save($url);
-        $this->cache->forget($this->cacheKey($saved->shortCode()));
+        $code = $saved->shortCode();
+        $this->cache->forget($this->cacheKey($code));
         $this->cache->forget($this->urlHashKey($saved->originalUrl()));
+        Redis::del("shorturl:404:{$code}");
         return $saved;
     }
 

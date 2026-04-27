@@ -10,6 +10,7 @@ use App\Domain\ShortUrl\Services\Base62Encoder;
 use App\Infrastructure\Cache\BloomFilterService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Redis;
+use RuntimeException;
 
 class CreateShortUrlCommandHandler
 {
@@ -36,7 +37,11 @@ class CreateShortUrlCommandHandler
         try {
             $this->repository->save($shortUrl);
         } catch (UniqueConstraintViolationException $e) {
-            return $this->repository->findByCode($code);
+            $existing = $this->repository->findByCode($code);
+            if (!$existing) {
+                throw new RuntimeException("Concurrency error: Record exists but could not be retrieved:{$e->getMessage()}");
+            }
+            return $existing;
         }
         Redis::setex("shorturl:redirect:{$code}", 86400, $command->url);
         $this->bloomFilter->add("url:{$command->url}");
