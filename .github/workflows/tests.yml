@@ -10,8 +10,6 @@ jobs:
   laravel-tests:
     runs-on: ubuntu-latest
 
-    services:
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,7 +17,7 @@ jobs:
       - name: Create .env file
         run: |
           cp .env.example .env
-          # Ajuste variáveis para o ambiente de CI se necessário
+          # Opcional se seu .env.example já estiver correto:
           sed -i 's/DB_HOST=127.0.0.1/DB_HOST=db/' .env
           sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=redis/' .env
 
