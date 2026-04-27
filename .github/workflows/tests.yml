@@ -39,7 +39,7 @@ jobs:
         run: |
           docker compose up -d app
           sleep 3
-          docker compose exec -T app php artisan test --parallel
+          docker compose exec -T app php artisan test
 
       - name: Debug Logs on Failure
         if: failure()
