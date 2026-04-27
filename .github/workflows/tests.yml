@@ -22,23 +22,23 @@ jobs:
           sed -i 's/REDIS_HOST=127.0.0.1/REDIS_HOST=redis/' .env
 
       - name: Build and Start Containers
-        run: docker-compose up -d db redis app
+        run: docker compose up -d db redis app
 
       - name: Install Composer Dependencies
-        run: docker-compose exec -T app composer install --prefer-dist --no-interaction
+        run: docker compose exec -T app composer install --prefer-dist --no-interaction
 
       - name: Generate App Key
-        run: docker-compose exec -T app php artisan key:generate
+        run: docker compose exec -T app php artisan key:generate
 
       - name: Run Migrations
-        run: docker-compose exec -T app php artisan migrate --force
+        run: docker compose exec -T app php artisan migrate --force
 
       - name: Execute Tests
         env:
           DB_DATABASE: url_shortener_test
           DB_PASSWORD: postgres
-        run: docker-compose exec -T app php artisan test --parallel
+        run: docker compose exec -T app php artisan test --parallel
 
       - name: Shutdown Containers
         if: always()
-        run: docker-compose down
+        run: docker compose down
