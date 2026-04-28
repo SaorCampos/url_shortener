@@ -39,7 +39,7 @@ class CreateShortUrlCommandHandler
         } catch (UniqueConstraintViolationException $e) {
             $existing = $this->repository->findByCode($code);
             if (!$existing) {
-                throw new RuntimeException("Concurrency error: Record exists but could not be retrieved:{$e->getMessage()}");
+                throw new RuntimeException("Erro crítico de integridade...");
             }
             return $existing;
         }
