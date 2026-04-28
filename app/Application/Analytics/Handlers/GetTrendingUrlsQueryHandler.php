@@ -5,6 +5,7 @@ namespace App\Application\Analytics\Handlers;
 use App\Application\Analytics\Queries\GetTrendingUrlsQuery;
 use App\Domain\Analytics\Repositories\AnalyticsRepository;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
+use App\Domain\Analytics\ValueObjects\TrendingUrl;
 
 class GetTrendingUrlsQueryHandler
 {
@@ -13,6 +14,7 @@ class GetTrendingUrlsQueryHandler
         private ShortUrlRepository $urlRepo
     ) {}
 
+    /** @return TrendingUrl[] */
     public function handle(GetTrendingUrlsQuery $query): array
     {
         $currentHour = $this->analyticsRepo->getTrendingStats(60);
@@ -23,14 +25,14 @@ class GetTrendingUrlsQueryHandler
             $clicksBefore = $previousHour[$urlId] ?? 0;
             $url = $this->urlRepo->findById($urlId);
             if (!$url) continue;
-            $result[] = [
-                'code'   => $url->shortCode(),
-                'clicks' => $clicksNow,
-                'trend'  => $this->calculateTrend($clicksNow, $clicksBefore),
-                'viral'  => $this->detectSpike($urlId, $clicksNow)
-            ];
+            $result[] = new TrendingUrl(
+                code: $url->shortCode(),
+                clicks: $clicksNow,
+                trend: $this->calculateTrend($clicksNow, $clicksBefore),
+                viral: $this->detectSpike($urlId, $clicksNow)
+            );
         }
-        usort($result, fn($a, $b) => $b['clicks'] <=> $a['clicks']);
+        usort($result, fn(TrendingUrl $a, TrendingUrl $b) => $b->clicks <=> $a->clicks);
         return array_slice($result, 0, 10);
     }
 
@@ -44,7 +46,7 @@ class GetTrendingUrlsQueryHandler
     {
         $avgPerMinute = $clicksNow / 60;
         $last5Mins = $this->analyticsRepo->getMinuteStats($urlId, 5);
-        $recentClicks = array_sum(array_column($last5Mins, 'value'));
+        $recentClicks = array_reduce($last5Mins, fn($carry, $point) => $carry + $point->value, 0);
         return $recentClicks > ($avgPerMinute * 5 * 3);
     }
 }
