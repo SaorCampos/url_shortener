@@ -133,9 +133,11 @@ paths:
             application/json:
               schema:
                 type: object
-                additionalProperties:
-                  type: integer
-                example: { "12": 272253, "14": 6134 }
+                properties:
+                  code: { type: string }
+                  labels: { type: array, items: { type: string }, description: "Time intervals (HH)" }
+                  values: { type: array, items: { type: integer }, description: "Click count per interval" }
+                  total: { type: integer }
 
   /api/analytics-countries/{code}:
     get:
