@@ -66,7 +66,7 @@ class EloquentAnalyticsRepository implements AnalyticsRepository
             ->orderBy('hour')
             ->get();
         return $results->map(fn($item) => new StatPoint(
-            label: $item->hour,
+            label: (string) $item->hour,
             value: (int) $item->clicks
         ))->toArray();
     }

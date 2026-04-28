@@ -5,6 +5,8 @@ namespace Tests\Unit\Application\Analytics\Handlers;
 use App\Application\Analytics\Handlers\GetTrendingUrlsQueryHandler;
 use App\Application\Analytics\Queries\GetTrendingUrlsQuery;
 use App\Domain\Analytics\Repositories\AnalyticsRepository;
+use App\Domain\Analytics\ValueObjects\StatPoint;
+use App\Domain\Analytics\ValueObjects\TrendingUrl;
 use App\Domain\ShortUrl\Entities\ShortUrl;
 use App\Domain\ShortUrl\Repositories\ShortUrlRepository;
 use Tests\TestCase;
@@ -26,28 +28,27 @@ class GetTrendingUrlsQueryHandlerTest extends TestCase
 
     public function test_handle_calculates_trends_and_detects_spikes_correctly()
     {
-        // 1. Mock das estatísticas de tendência (60 min vs 120-60 min)
         $this->analyticsRepo->shouldReceive('getTrendingStats')
             ->with(60)
-            ->andReturn(['uuid-1' => 100, 'uuid-2' => 2]); // uuid-2 será ignorado (clicks < 3)
+            ->andReturn(['uuid-1' => 100, 'uuid-2' => 2]);
         $this->analyticsRepo->shouldReceive('getTrendingStats')
             ->with(120, 60)
-            ->andReturn(['uuid-1' => 50]); // Crescimento de 100%
-        // 2. Mock da Entidade ShortUrl
+            ->andReturn(['uuid-1' => 50]);
         $url = Mockery::mock(ShortUrl::class);
         $url->shouldReceive('shortCode')->andReturn('TRENDY');
         $this->urlRepo->shouldReceive('findById')->with('uuid-1')->andReturn($url);
         $this->analyticsRepo->shouldReceive('getMinuteStats')
             ->with('uuid-1', 5)
             ->andReturn([
-                ['label' => '10:01', 'value' => 10],
-                ['label' => '10:02', 'value' => 20], // Total 30 (> 25)
+                new StatPoint('10:01', 10),
+                new StatPoint('10:02', 20),
             ]);
         $result = $this->handler->handle(new GetTrendingUrlsQuery());
         $this->assertCount(1, $result);
-        $this->assertEquals('TRENDY', $result[0]['code']);
-        $this->assertEquals('+100%', $result[0]['trend']);
-        $this->assertTrue($result[0]['viral']);
+        $this->assertInstanceOf(TrendingUrl::class, $result[0]);
+        $this->assertEquals('TRENDY', $result[0]->code);
+        $this->assertEquals('+100%', $result[0]->trend);
+        $this->assertTrue($result[0]->viral);
     }
 
     public function test_calculate_trend_with_zero_previous_clicks()
@@ -59,6 +60,6 @@ class GetTrendingUrlsQueryHandlerTest extends TestCase
         $this->urlRepo->shouldReceive('findById')->andReturn($url);
         $this->analyticsRepo->shouldReceive('getMinuteStats')->andReturn([]);
         $result = $this->handler->handle(new GetTrendingUrlsQuery());
-        $this->assertEquals('+100%', $result[0]['trend']);
+        $this->assertEquals('+100%', $result[0]->trend);
     }
 }
