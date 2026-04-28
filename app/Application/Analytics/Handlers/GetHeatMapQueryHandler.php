@@ -18,6 +18,12 @@ class GetHeatMapQueryHandler
     {
         $url = $this->urlRepo->findByCode($query->code);
         if (!$url) throw new UrlNotFoundException($query->code);
-        return $this->analyticsRepo->getHourHeatmap($url->id());
+        $stats = $this->analyticsRepo->getHourHeatmap($url->id());
+        return [
+            'code' => $query->code,
+            'labels' => array_column($stats, 'label'),
+            'values' => array_column($stats, 'value'),
+            'total' => $url->clicks()
+        ];
     }
 }

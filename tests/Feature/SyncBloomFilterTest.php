@@ -23,7 +23,7 @@ class SyncBloomFilterTest extends TestCase
     {
         ShortUrlModel::factory()->count(5)->create();
         $bloomMock = Mockery::mock(BloomFilterService::class);
-        $bloomMock->shouldReceive('add')->times(5);
+        $bloomMock->shouldReceive('add')->times(10);
         $this->app->instance(BloomFilterService::class, $bloomMock);
         $this->artisan('shorturl:sync-bloom')->assertExitCode(0);
     }

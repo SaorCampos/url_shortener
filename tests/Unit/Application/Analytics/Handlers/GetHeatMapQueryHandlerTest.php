@@ -18,26 +18,30 @@ class GetHeatMapQueryHandlerTest extends TestCase
         $urlRepo = Mockery::mock(ShortUrlRepository::class);
         $analyticsRepo = Mockery::mock(AnalyticsRepository::class);
         $handler = new GetHeatMapQueryHandler($analyticsRepo, $urlRepo);
+        $code = 'HOT123';
         $url = Mockery::mock(ShortUrl::class);
         $url->shouldReceive('id')->andReturn('uuid-heat-789');
+        $url->shouldReceive('clicks')->andReturn(200);
         $urlRepo->shouldReceive('findByCode')
             ->once()
-            ->with('HOT123')
+            ->with($code)
             ->andReturn($url);
-                $expectedHeatmap = [
-            '00' => 5,
-            '12' => 45,
-            '18' => 120,
-            '22' => 30
+        $expectedHeatmap = [
+            ['label' => '00', 'value' => 5],
+            ['label' => '12', 'value' => 45],
+            ['label' => '18', 'value' => 120],
+            ['label' => '22', 'value' => 30],
         ];
+
         $analyticsRepo->shouldReceive('getHourHeatmap')
             ->once()
             ->with('uuid-heat-789')
             ->andReturn($expectedHeatmap);
-        $result = $handler->handle(new GetHeatMapQuery('HOT123'));
-        $this->assertEquals($expectedHeatmap, $result);
-        $this->assertArrayHasKey('18', $result);
-        $this->assertEquals(120, $result['18']);
+        $result = $handler->handle(new GetHeatMapQuery($code));
+        $this->assertEquals($code, $result['code']);
+        $this->assertEquals(['00', '12', '18', '22'], $result['labels']);
+        $this->assertEquals([5, 45, 120, 30], $result['values']);
+        $this->assertEquals(200, $result['total']);
     }
 
     public function test_handle_throws_exception_if_url_not_found()
