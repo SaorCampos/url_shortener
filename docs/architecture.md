@@ -2,7 +2,7 @@
 
 # 🏗 Engenharia e Arquitetura
 
-Este documento detalha as decisões de design e infraestrutura que permitem ao projeto sustentar mais de 1.000 requisições por segundo em uma única instância.
+Este documento detalha as decisões de design e infraestrutura que permitem ao projeto sustentar mais de 2.000 requisições por segundo em uma única instância.
 
 ## 🏛 Domain-Driven Design (DDD)
 
@@ -86,7 +86,7 @@ sequenceDiagram
 
 # 🏗 Engineering and Architecture
 
-This document details the design and infrastructure decisions that allow the project to handle over 1,000 requests per second on a single instance.
+This document details the design and infrastructure decisions that allow the project to handle over 2,000 requests per second on a single instance.
 
 ## 🏛 Domain-Driven Design (DDD)
 
