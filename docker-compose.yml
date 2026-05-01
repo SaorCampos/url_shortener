@@ -48,6 +48,7 @@ services:
       - ./docker/nginx/:/etc/nginx/conf.d/
     networks:
       - urlshortener
+      - link_network
 
   redis:
     container_name: urlshortener_redis
@@ -96,6 +97,8 @@ services:
 networks:
   urlshortener:
     driver: bridge
+  link_network:
+    external: true
 
 volumes:
   postgres_data:

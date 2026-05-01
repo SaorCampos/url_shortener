@@ -78,6 +78,9 @@ benchmark:
 stress:
 	docker run --rm --network url_shortener_urlshortener -i grafana/k6 run - <stress_test.js
 
+network:
+	docker network create link_network
+
 help:
 	@echo ""
 	@echo "Available commands:"

@@ -35,7 +35,7 @@ Focado em encontrar o limite de vazão da infraestrutura.
 
 O projeto utiliza um **Makefile** para automatizar todo o setup via Docker.
 
-1. **Instalação:** `make setup`
+1. **Instalação:** `make network && make setup`
 2. **Acessar:** `http://localhost:8011`
 
 > 📖 **Quer entender a engenharia por trás desses números?** > Confira o [Guia de Arquitetura e Decisões Técnicas](docs/architecture.md).
@@ -89,7 +89,7 @@ Focused on finding the throughput limits of the infrastructure.
 
 The project uses a **Makefile** to automate the entire setup via Docker.
 
-1. **Installation:** `make setup`
+1. **Installation:** `make network && make setup`
 2. **Access:** `http://localhost:8011`
 
 > 📖 **Want to understand the engineering behind these numbers?** > Check out the [Architecture and Technical Decisions Guide](docs/architecture.md).
